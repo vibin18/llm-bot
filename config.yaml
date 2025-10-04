@@ -1,0 +1,22 @@
+app:
+  name: "whatsapp-llm-bot"
+  port: 8080
+  log_level: "debug"
+
+whatsapp:
+  session_path: "./whatsapp_session"
+  allowed_groups:
+    - "120363416151629681@g.us"  # test group
+    - "120363400902171371@g.us"  # ttt group
+  trigger_words:
+    - "@sasi"
+    - "@SASI"
+
+ollama:
+  url: "http://192.168.1.245:11434"
+  model: "gpt-oss:latest"
+  temperature: 0.7
+  timeout: "300s"
+
+storage:
+  type: "memory"

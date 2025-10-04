@@ -1,0 +1,31 @@
+## Function
+
+Write a Go application built with hexagonal architecture that listen to whatsapp chat group with Local LLM models runs on remote Ollama server.
+The bot should listen to whatsapp group (allowed using a Admin UI or defined in config file)
+For whatsapp integration use go.mau.fi/whatsmeow library
+It uses [langchaingo](https://github.com/tmc/langchaingo) for LLM integration and connects to an Ollama model.
+An Admin UI page for Selection groups(when updated same should reflect in config yaml)
+Runs on a docker container(no docker compose just plain docker)
+Build using MakeFile, multi-stage building
+for whatsapp (go.mau.fi/whatsmeow) login using qr code.
+for whatsapp (go.mau.fi/whatsmeow) ldb can use a mount volume from docker mount "-v"
+
+## Features
+
+- Hexagonal architecture for clean separation of concerns
+- Structured logging using Go's slog package
+- Integration with Ollama LLM models via langchaingo
+- Modern web UI for admin page
+- RESTful API for chat operations
+- In-memory chat storage (can be extended to persistent storage)
+
+## Architecture
+
+The application follows the hexagonal architecture pattern:
+
+
+## Configuration
+
+The application can be configured through a YAML file or environment variables.
+
+Create a plan and add that to a new plan.md file

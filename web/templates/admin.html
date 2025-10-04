@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp LLM Bot - Admin</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 WhatsApp LLM Bot</h1>
+            <p class="subtitle">Admin Dashboard</p>
+        </header>
+
+        <section class="status-section">
+            <h2>Connection Status</h2>
+            <div id="status-container">
+                <div class="status-item">
+                    <span class="label">WhatsApp:</span>
+                    <span id="wa-status" class="status-badge">Checking...</span>
+                </div>
+                <div id="qr-container" style="display: none;">
+                    <h3>Scan QR Code to Login</h3>
+                    <img id="qr-code" src="" alt="QR Code">
+                </div>
+            </div>
+        </section>
+
+        <section class="groups-section">
+            <h2>WhatsApp Groups</h2>
+            <div class="controls">
+                <button id="refresh-btn" onclick="loadGroups()">🔄 Refresh Groups</button>
+                <button id="save-btn" onclick="saveAllowedGroups()">💾 Save Changes</button>
+            </div>
+            <div id="groups-container">
+                <p class="loading">Loading groups...</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
