@@ -113,6 +113,22 @@ func (m *MockGroupManager) SyncWithConfig() error {
 	return nil
 }
 
+// MockWebhookClient is a mock implementation of WebhookClient
+type MockWebhookClient struct {
+	response string
+	err      error
+}
+
+func (m *MockWebhookClient) Call(ctx context.Context, url string, message string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	if m.response != "" {
+		return m.response, nil
+	}
+	return "webhook response", nil
+}
+
 func TestChatService_ProcessMessage(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -160,7 +176,8 @@ func TestChatService_ProcessMessage(t *testing.T) {
 			whatsapp := &MockWhatsAppClient{}
 			groupMgr := &MockGroupManager{allowedGroups: tt.allowedGroups}
 
-			service := NewChatService(llmProvider, repository, whatsapp, groupMgr, []string{}, logger)
+			webhookClient := &MockWebhookClient{}
+			service := NewChatService(llmProvider, repository, whatsapp, groupMgr, webhookClient, []string{}, []domain.WebhookConfig{}, logger)
 
 			ctx := context.Background()
 			err := service.ProcessMessage(ctx, tt.message)

@@ -80,6 +80,18 @@
 - [x] Usage examples and troubleshooting
 - [x] .gitignore file
 
+## Phase 11: Advanced Features ✅
+- [x] Trigger words support (multiple trigger words in config)
+- [x] Reply detection (respond to replies to bot messages)
+- [x] Webhook integration:
+  - [x] Sub-trigger words for webhook routing (@family, @web, etc.)
+  - [x] HTTP POST to external webhooks with JSON payload
+  - [x] Response forwarding back to WhatsApp
+  - [x] Webhook client with timeout and error handling
+  - [x] Admin UI for webhook management (add/delete)
+  - [x] Synchronous config.yaml updates via API
+  - [x] API endpoints: GET/POST/DELETE /api/webhooks
+
 ---
 
 ## Completed Items
@@ -93,19 +105,26 @@
 - **Phase 8**: Docker Containerization (multi-stage build, volume mounts, health checks)
 - **Phase 9**: Build Automation (Makefile with comprehensive targets)
 - **Phase 10**: Testing & Documentation (unit tests, README, API docs)
+- **Phase 11**: Advanced Features (trigger words, reply detection, webhooks)
 
 ---
 
 ## Notes
 - Project started: 2025-10-04
-- All 10 phases completed successfully
+- All 11 phases completed successfully
 - Docker build fixed for Go 1.24+ dependencies (using GOTOOLCHAIN=auto)
 - WhatsApp API updated to use context parameters (newer whatsmeow version)
 - QR code generation implemented:
   - ASCII QR code displayed in Docker logs
   - PNG QR code (base64) available via API for Admin UI
   - Uses go-qrcode library for generation
-- **Trigger word feature added**: Bot only responds when message starts with configured trigger word (default: "@sasi")
+- **Trigger word feature added**: Bot responds when message starts with any configured trigger word (supports multiple: "@sasi", "@bot", etc.)
+- **Reply detection added**: Bot automatically responds to replies to its own messages (bypasses trigger word requirement)
+- **Webhook feature added**:
+  - Sub-trigger words route messages to external webhooks (@family, @web, etc.)
+  - Webhook responses are sent back to WhatsApp
+  - Admin UI supports adding/deleting webhooks
+  - Config.yaml updates synchronously via API
 - JSON field names fixed for proper Admin UI display
 - Group names properly fetched using GetGroupInfo API
 - Project is ready for deployment and use

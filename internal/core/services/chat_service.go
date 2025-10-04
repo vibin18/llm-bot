@@ -11,12 +11,14 @@ import (
 
 // ChatService handles chat message processing
 type ChatService struct {
-	llmProvider  domain.LLMProvider
-	repository   domain.MessageRepository
-	whatsapp     domain.WhatsAppClient
-	groupMgr     domain.GroupManager
-	triggerWords []string
-	logger       *slog.Logger
+	llmProvider    domain.LLMProvider
+	repository     domain.MessageRepository
+	whatsapp       domain.WhatsAppClient
+	groupMgr       domain.GroupManager
+	webhookClient  domain.WebhookClient
+	triggerWords   []string
+	webhookConfigs []domain.WebhookConfig
+	logger         *slog.Logger
 }
 
 // NewChatService creates a new chat service
@@ -25,16 +27,20 @@ func NewChatService(
 	repository domain.MessageRepository,
 	whatsapp domain.WhatsAppClient,
 	groupMgr domain.GroupManager,
+	webhookClient domain.WebhookClient,
 	triggerWords []string,
+	webhookConfigs []domain.WebhookConfig,
 	logger *slog.Logger,
 ) *ChatService {
 	return &ChatService{
-		llmProvider:  llmProvider,
-		repository:   repository,
-		whatsapp:     whatsapp,
-		groupMgr:     groupMgr,
-		triggerWords: triggerWords,
-		logger:       logger,
+		llmProvider:    llmProvider,
+		repository:     repository,
+		whatsapp:       whatsapp,
+		groupMgr:       groupMgr,
+		webhookClient:  webhookClient,
+		triggerWords:   triggerWords,
+		webhookConfigs: webhookConfigs,
+		logger:         logger,
 	}
 }
 
@@ -70,6 +76,11 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 		}
 
 		s.logger.Debug("Message triggered", "trigger", matchedTrigger)
+
+		// Check for webhook sub-trigger
+		if webhook := s.findMatchingWebhook(message.Content); webhook != nil {
+			return s.processWebhookMessage(ctx, message, webhook)
+		}
 	} else if message.IsReplyToBot {
 		s.logger.Debug("Message is a reply to bot", "content", message.Content)
 	}
@@ -106,6 +117,12 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 	response, err := s.llmProvider.Generate(ctx, llmRequest)
 	if err != nil || response.Error != nil {
 		s.logger.Error("Failed to generate LLM response", "error", err)
+
+		// Send user-friendly error message
+		errorMsg := "Sorry, I cannot process this request right now due to a technical error. Please try again later."
+		if err := s.whatsapp.SendMessage(ctx, message.GroupJID, errorMsg); err != nil {
+			s.logger.Error("Failed to send error message", "error", err)
+		}
 		return fmt.Errorf("failed to generate response: %w", err)
 	}
 
@@ -123,6 +140,74 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 		GroupJID:  message.GroupJID,
 		Sender:    "bot",
 		Content:   response.Content,
+		Timestamp: message.Timestamp,
+		IsFromBot: true,
+	}
+
+	if err := s.repository.Save(ctx, botMessage); err != nil {
+		s.logger.Error("Failed to save bot message", "error", err)
+	}
+
+	return nil
+}
+
+// findMatchingWebhook finds a webhook config that matches the message content
+func (s *ChatService) findMatchingWebhook(content string) *domain.WebhookConfig {
+	trimmedContent := strings.TrimSpace(content)
+
+	for i := range s.webhookConfigs {
+		webhook := &s.webhookConfigs[i]
+		if strings.HasPrefix(trimmedContent, webhook.SubTrigger) {
+			return webhook
+		}
+	}
+
+	return nil
+}
+
+// processWebhookMessage handles messages that trigger a webhook
+func (s *ChatService) processWebhookMessage(ctx context.Context, message *domain.Message, webhook *domain.WebhookConfig) error {
+	// Remove sub-trigger from message content
+	userMessage := strings.TrimSpace(strings.TrimPrefix(message.Content, webhook.SubTrigger))
+
+	s.logger.Info("Processing webhook message",
+		"sub_trigger", webhook.SubTrigger,
+		"webhook_url", webhook.URL,
+		"message", userMessage)
+
+	// Save incoming message
+	if err := s.repository.Save(ctx, message); err != nil {
+		s.logger.Error("Failed to save message", "error", err)
+		return fmt.Errorf("failed to save message: %w", err)
+	}
+
+	// Call webhook
+	response, err := s.webhookClient.Call(ctx, webhook.URL, userMessage)
+	if err != nil {
+		s.logger.Error("Failed to call webhook", "error", err, "url", webhook.URL)
+
+		// Send user-friendly error message
+		errorMsg := "Sorry, I cannot process this request right now due to a technical error. Please try again later."
+		if err := s.whatsapp.SendMessage(ctx, message.GroupJID, errorMsg); err != nil {
+			s.logger.Error("Failed to send error message", "error", err)
+		}
+		return fmt.Errorf("failed to call webhook: %w", err)
+	}
+
+	s.logger.Info("Webhook response received", "response", response)
+
+	// Send webhook response back to WhatsApp
+	if err := s.whatsapp.SendMessage(ctx, message.GroupJID, response); err != nil {
+		s.logger.Error("Failed to send webhook response", "error", err)
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+
+	// Save bot response
+	botMessage := &domain.Message{
+		ID:        fmt.Sprintf("bot-%d", message.Timestamp.Unix()),
+		GroupJID:  message.GroupJID,
+		Sender:    "bot",
+		Content:   response,
 		Timestamp: message.Timestamp,
 		IsFromBot: true,
 	}

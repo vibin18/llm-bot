@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp LLM Bot - Admin</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
 <body>
     <div class="container">
@@ -37,8 +37,35 @@
                 <p class="loading">Loading groups...</p>
             </div>
         </section>
+
+        <section class="webhooks-section">
+            <h2>Webhooks Configuration</h2>
+            <div class="controls">
+                <button id="add-webhook-btn" onclick="showAddWebhookForm()">➕ Add Webhook</button>
+            </div>
+
+            <div id="add-webhook-form" style="display: none;" class="webhook-form">
+                <h3>Add New Webhook</h3>
+                <div class="form-group">
+                    <label for="sub-trigger">Sub-Trigger Word:</label>
+                    <input type="text" id="sub-trigger" placeholder="@family" required>
+                </div>
+                <div class="form-group">
+                    <label for="webhook-url">Webhook URL:</label>
+                    <input type="url" id="webhook-url" placeholder="https://example.com/webhook" required>
+                </div>
+                <div class="form-actions">
+                    <button onclick="addWebhook()">Save</button>
+                    <button onclick="hideAddWebhookForm()">Cancel</button>
+                </div>
+            </div>
+
+            <div id="webhooks-container">
+                <p class="loading">Loading webhooks...</p>
+            </div>
+        </section>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=2"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ import (
 	"github.com/vibin/whatsapp-llm-bot/internal/adapters/primary/whatsapp"
 	"github.com/vibin/whatsapp-llm-bot/internal/adapters/secondary/llm"
 	"github.com/vibin/whatsapp-llm-bot/internal/adapters/secondary/storage"
+	"github.com/vibin/whatsapp-llm-bot/internal/adapters/secondary/webhook"
 	"github.com/vibin/whatsapp-llm-bot/internal/config"
 	"github.com/vibin/whatsapp-llm-bot/internal/core/services"
 	waLog "go.mau.fi/whatsmeow/util/log"
@@ -84,13 +85,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize webhook client
+	webhookClient := webhook.NewClient(30 * time.Second)
+
 	// Initialize chat service
 	chatService := services.NewChatService(
 		llmProvider,
 		messageRepo,
 		waClient,
 		groupMgr,
+		webhookClient,
 		cfg.WhatsApp.TriggerWords,
+		cfg.Webhooks,
 		logger,
 	)
 
@@ -108,7 +114,7 @@ func main() {
 	}
 
 	// Initialize HTTP server
-	httpHandlers := http.NewHandlers(waClient, groupMgr, logger)
+	httpHandlers := http.NewHandlers(waClient, groupMgr, configStore, logger)
 	httpServer := http.NewServer(cfg.App.Port, httpHandlers, logger)
 
 	if err := httpServer.Start(ctx); err != nil {

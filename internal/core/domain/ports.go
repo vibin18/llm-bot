@@ -43,3 +43,8 @@ type GroupManager interface {
 	UpdateAllowedGroups(groups []string) error
 	SyncWithConfig() error
 }
+
+// WebhookClient defines the interface for webhook interactions
+type WebhookClient interface {
+	Call(ctx context.Context, url string, message string) (string, error)
+}

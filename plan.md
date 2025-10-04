@@ -1,7 +1,7 @@
 # WhatsApp LLM Bot - Implementation Plan
 
 ## Project Overview
-A Go application using hexagonal architecture that listens to WhatsApp group chats and responds using Local LLM models running on a remote Ollama server.
+A Go application using hexagonal architecture that listens to WhatsApp group chats and responds using Local LLM models running on a remote Ollama server. Supports trigger words, reply detection, and webhook integration for external service calls.
 
 ## Technology Stack
 - **Language**: Go
@@ -171,6 +171,16 @@ A Go application using hexagonal architecture that listens to WhatsApp group cha
   - Troubleshooting
 - [ ] API documentation
 
+### Phase 11: Advanced Features
+- [ ] Trigger words support (multiple trigger words)
+- [ ] Reply detection (respond to replies to bot messages)
+- [ ] Webhook integration:
+  - Sub-trigger words for webhook routing
+  - HTTP POST to external webhooks
+  - Response forwarding back to WhatsApp
+  - Admin UI for webhook management
+  - Synchronous config updates
+
 ## Configuration Schema (config.yaml)
 
 ```yaml
@@ -184,6 +194,9 @@ whatsapp:
   allowed_groups:
     - "group1_jid@g.us"
     - "group2_jid@g.us"
+  trigger_words:
+    - "@bot"
+    - "@sasi"
 
 ollama:
   url: "http://ollama-server:11434"
@@ -193,6 +206,12 @@ ollama:
 
 storage:
   type: "memory"  # memory or future: redis, postgres
+
+webhooks:
+  - sub_trigger: "@family"
+    url: "http://example.com/webhook/family"
+  - sub_trigger: "@web"
+    url: "http://example.com/webhook/web"
 ```
 
 ## Docker Usage
@@ -234,6 +253,7 @@ docker run -d \
 3. Admin selects allowed groups
 4. Update config.yaml
 5. Reload group filter without restart
+
 
 ## Dependencies
 

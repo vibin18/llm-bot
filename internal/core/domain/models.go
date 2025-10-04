@@ -27,6 +27,7 @@ type Config struct {
 	WhatsApp WhatsAppConfig `yaml:"whatsapp"`
 	Ollama   OllamaConfig   `yaml:"ollama"`
 	Storage  StorageConfig  `yaml:"storage"`
+	Webhooks []WebhookConfig `yaml:"webhooks"`
 }
 
 // AppConfig contains application-level settings
@@ -54,6 +55,12 @@ type OllamaConfig struct {
 // StorageConfig contains storage settings
 type StorageConfig struct {
 	Type string `yaml:"type"`
+}
+
+// WebhookConfig contains webhook settings
+type WebhookConfig struct {
+	SubTrigger string `yaml:"sub_trigger" json:"sub_trigger"`
+	URL        string `yaml:"url" json:"url"`
 }
 
 // LLMRequest represents a request to the LLM

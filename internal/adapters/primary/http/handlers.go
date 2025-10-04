@@ -10,17 +10,19 @@ import (
 
 // Handlers contains HTTP request handlers
 type Handlers struct {
-	whatsapp  domain.WhatsAppClient
-	groupMgr  domain.GroupManager
-	logger    *slog.Logger
+	whatsapp    domain.WhatsAppClient
+	groupMgr    domain.GroupManager
+	configStore domain.ConfigStore
+	logger      *slog.Logger
 }
 
 // NewHandlers creates new HTTP handlers
-func NewHandlers(whatsapp domain.WhatsAppClient, groupMgr domain.GroupManager, logger *slog.Logger) *Handlers {
+func NewHandlers(whatsapp domain.WhatsAppClient, groupMgr domain.GroupManager, configStore domain.ConfigStore, logger *slog.Logger) *Handlers {
 	return &Handlers{
-		whatsapp: whatsapp,
-		groupMgr: groupMgr,
-		logger:   logger,
+		whatsapp:    whatsapp,
+		groupMgr:    groupMgr,
+		configStore: configStore,
+		logger:      logger,
 	}
 }
 
@@ -113,5 +115,114 @@ func (h *Handlers) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "healthy",
+	})
+}
+
+// GetWebhooks returns all configured webhooks
+func (h *Handlers) GetWebhooks(w http.ResponseWriter, r *http.Request) {
+	cfg, err := h.configStore.Load()
+	if err != nil {
+		h.logger.Error("Failed to load config", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"webhooks": cfg.Webhooks,
+	})
+}
+
+// AddWebhook adds a new webhook configuration
+func (h *Handlers) AddWebhook(w http.ResponseWriter, r *http.Request) {
+	var webhook domain.WebhookConfig
+	if err := json.NewDecoder(r.Body).Decode(&webhook); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate webhook
+	if webhook.SubTrigger == "" || webhook.URL == "" {
+		http.Error(w, "sub_trigger and url are required", http.StatusBadRequest)
+		return
+	}
+
+	cfg, err := h.configStore.Load()
+	if err != nil {
+		h.logger.Error("Failed to load config", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if sub_trigger already exists
+	for _, wh := range cfg.Webhooks {
+		if wh.SubTrigger == webhook.SubTrigger {
+			http.Error(w, "sub_trigger already exists", http.StatusConflict)
+			return
+		}
+	}
+
+	cfg.Webhooks = append(cfg.Webhooks, webhook)
+
+	if err := h.configStore.Save(cfg); err != nil {
+		h.logger.Error("Failed to save config", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Webhook added successfully",
+		"webhook": webhook,
+	})
+}
+
+// DeleteWebhook removes a webhook configuration
+func (h *Handlers) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SubTrigger string `json:"sub_trigger"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	cfg, err := h.configStore.Load()
+	if err != nil {
+		h.logger.Error("Failed to load config", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Find and remove webhook
+	found := false
+	newWebhooks := make([]domain.WebhookConfig, 0)
+	for _, webhook := range cfg.Webhooks {
+		if webhook.SubTrigger != req.SubTrigger {
+			newWebhooks = append(newWebhooks, webhook)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		http.Error(w, "Webhook not found", http.StatusNotFound)
+		return
+	}
+
+	cfg.Webhooks = newWebhooks
+
+	if err := h.configStore.Save(cfg); err != nil {
+		h.logger.Error("Failed to save config", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Webhook deleted successfully",
 	})
 }

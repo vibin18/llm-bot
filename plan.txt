@@ -29,3 +29,18 @@ The application follows the hexagonal architecture pattern:
 The application can be configured through a YAML file or environment variables.
 
 Create a plan and add that to a new plan.md file
+
+
+## Feature Webhook
+create a config option to specify a sub trigger word for example "@sasi @family <user message> " and a "webhook url" so when the bot receives this
+it should call a webhook that calls along with the user message and wait for the webhook response and send it back to user.
+
+config can be something like, you may change if you have better option:
+
+webhooks:
+    - sub-trigger-word: "@family"
+      webhook: http://192.168.1.132:5678/webhook-test/8feca6fb-29c9-4569-b618-3481e9a153e9
+    - sub-trigger-word: "@web"
+      webhook: http://192.168.1.132:5678/webhook-test1/8feca6fb-29c9-4569-b618-3481e9a153e9
+
+Also make the admin ui of capable of adding this config so that it also updates config.yaml, syncronously
