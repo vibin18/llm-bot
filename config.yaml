@@ -20,5 +20,7 @@ storage:
 webhooks:
     - sub_trigger: '@family'
       url: http://192.168.1.132:5678/webhook/5a1a5bd0-0ff3-4393-9317-8da7f64c314e
+      timeout: 60s
     - sub_trigger: '@web'
       url: http://192.168.1.132:5678/webhook1/5a1a5bd0-0ff3-4393-9317-8da7f64c314e
+      timeout: 60s

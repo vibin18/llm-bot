@@ -179,8 +179,13 @@ async function loadWebhooks() {
             urlDiv.className = 'webhook-url';
             urlDiv.textContent = webhook.url;
 
+            const timeoutDiv = document.createElement('div');
+            timeoutDiv.className = 'webhook-timeout';
+            timeoutDiv.textContent = `Timeout: ${webhook.timeout || '30s'}`;
+
             infoDiv.appendChild(triggerDiv);
             infoDiv.appendChild(urlDiv);
+            infoDiv.appendChild(timeoutDiv);
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
@@ -210,14 +215,16 @@ function hideAddWebhookForm() {
     document.getElementById('add-webhook-btn').style.display = 'inline-block';
     document.getElementById('sub-trigger').value = '';
     document.getElementById('webhook-url').value = '';
+    document.getElementById('webhook-timeout').value = '60s';
 }
 
 // Add webhook
 async function addWebhook() {
     const subTrigger = document.getElementById('sub-trigger').value.trim();
     const url = document.getElementById('webhook-url').value.trim();
+    const timeout = document.getElementById('webhook-timeout').value.trim();
 
-    if (!subTrigger || !url) {
+    if (!subTrigger || !url || !timeout) {
         alert('Please fill in all fields');
         return;
     }
@@ -230,7 +237,8 @@ async function addWebhook() {
             },
             body: JSON.stringify({
                 sub_trigger: subTrigger,
-                url: url
+                url: url,
+                timeout: timeout
             }),
         });
 

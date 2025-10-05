@@ -273,6 +273,12 @@ button:disabled {
     font-family: 'Courier New', monospace;
 }
 
+.webhook-timeout {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 2px;
+}
+
 .delete-btn {
     background: #e53e3e;
     color: white;

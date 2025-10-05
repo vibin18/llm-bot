@@ -61,6 +61,7 @@ type StorageConfig struct {
 type WebhookConfig struct {
 	SubTrigger string `yaml:"sub_trigger" json:"sub_trigger"`
 	URL        string `yaml:"url" json:"url"`
+	Timeout    string `yaml:"timeout" json:"timeout"` // e.g., "60s", "2m"
 }
 
 // LLMRequest represents a request to the LLM

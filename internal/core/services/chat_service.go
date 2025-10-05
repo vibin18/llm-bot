@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
 )
@@ -181,8 +182,23 @@ func (s *ChatService) processWebhookMessage(ctx context.Context, message *domain
 		return fmt.Errorf("failed to save message: %w", err)
 	}
 
-	// Call webhook
-	response, err := s.webhookClient.Call(ctx, webhook.URL, userMessage)
+	// Parse webhook timeout (default to 30s if not specified or invalid)
+	timeout := 30 * time.Second
+	if webhook.Timeout != "" {
+		if parsedTimeout, err := time.ParseDuration(webhook.Timeout); err == nil {
+			timeout = parsedTimeout
+			s.logger.Debug("Using webhook timeout", "timeout", timeout)
+		} else {
+			s.logger.Warn("Invalid webhook timeout, using default 30s", "timeout_config", webhook.Timeout, "error", err)
+		}
+	}
+
+	// Create context with timeout
+	webhookCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Call webhook with timeout context
+	response, err := s.webhookClient.Call(webhookCtx, webhook.URL, userMessage)
 	if err != nil {
 		s.logger.Error("Failed to call webhook", "error", err, "url", webhook.URL)
 

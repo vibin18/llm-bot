@@ -48,7 +48,7 @@ func (c *Client) Call(ctx context.Context, url string, message string) (string, 
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Create HTTP request
+	// Create HTTP request with context (allows timeout override)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
