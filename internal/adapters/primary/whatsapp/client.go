@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/skip2/go-qrcode"
@@ -28,6 +29,8 @@ type Client struct {
 	mu              sync.RWMutex
 	qrChan          chan string
 	logger          waLog.Logger
+	botLIDCache     map[string]string // groupJID -> botLID mapping
+	cacheMu         sync.RWMutex
 }
 
 // NewClient creates a new WhatsApp client
@@ -42,6 +45,7 @@ func NewClient(sessionPath string, allowedGroups []string, logger waLog.Logger) 
 		allowedGroups: allowed,
 		qrChan:        make(chan string, 1),
 		logger:        logger,
+		botLIDCache:   make(map[string]string),
 	}, nil
 }
 
@@ -133,6 +137,113 @@ func (c *Client) SendMessage(ctx context.Context, groupJID, message string) erro
 	_, err = c.client.SendMessage(ctx, jid, msg)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
+	}
+
+	return nil
+}
+
+// SendReply sends a message as a reply to another message in a WhatsApp group
+func (c *Client) SendReply(ctx context.Context, groupJID, message, replyToMessageID, quotedSender string) error {
+	if c.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	jid, err := types.ParseJID(groupJID)
+	if err != nil {
+		return fmt.Errorf("invalid JID: %w", err)
+	}
+
+	// Parse the quoted sender JID to ensure it's in the correct format
+	quotedSenderJID, err := types.ParseJID(quotedSender)
+	if err != nil {
+		c.logger.Warnf("Failed to parse quoted sender JID: %v, using as-is", err)
+	} else {
+		// Use the properly formatted JID string
+		quotedSender = quotedSenderJID.String()
+	}
+
+	// Create a quoted message (reply)
+	msg := &waProto.Message{
+		ExtendedTextMessage: &waProto.ExtendedTextMessage{
+			Text: proto.String(message),
+			ContextInfo: &waProto.ContextInfo{
+				StanzaID:      proto.String(replyToMessageID),
+				Participant:   proto.String(quotedSender),
+				QuotedMessage: &waProto.Message{},
+			},
+		},
+	}
+
+	c.logger.Infof("Sending reply to message %s from %s in group %s", replyToMessageID, quotedSender, groupJID)
+
+	_, err = c.client.SendMessage(ctx, jid, msg)
+	if err != nil {
+		return fmt.Errorf("failed to send reply: %w", err)
+	}
+
+	return nil
+}
+
+// SendImage sends an image to a WhatsApp group
+func (c *Client) SendImage(ctx context.Context, groupJID string, imageData []byte, mimeType, caption, replyToMessageID, quotedSender string) error {
+	if c.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	jid, err := types.ParseJID(groupJID)
+	if err != nil {
+		return fmt.Errorf("invalid JID: %w", err)
+	}
+
+	// Upload image to WhatsApp servers
+	uploaded, err := c.client.Upload(ctx, imageData, whatsmeow.MediaImage)
+	if err != nil {
+		return fmt.Errorf("failed to upload image: %w", err)
+	}
+
+	// Create image message
+	imageMsg := &waProto.ImageMessage{
+		URL:           proto.String(uploaded.URL),
+		DirectPath:    proto.String(uploaded.DirectPath),
+		MediaKey:      uploaded.MediaKey,
+		Mimetype:      proto.String(mimeType),
+		FileEncSHA256: uploaded.FileEncSHA256,
+		FileSHA256:    uploaded.FileSHA256,
+		FileLength:    proto.Uint64(uint64(len(imageData))),
+	}
+
+	// Add caption if provided
+	if caption != "" {
+		imageMsg.Caption = proto.String(caption)
+	}
+
+	msg := &waProto.Message{
+		ImageMessage: imageMsg,
+	}
+
+	// If replying to a message, wrap in ExtendedTextMessage with ContextInfo
+	if replyToMessageID != "" && quotedSender != "" {
+		// Parse the quoted sender JID
+		quotedSenderJID, err := types.ParseJID(quotedSender)
+		if err != nil {
+			c.logger.Warnf("Failed to parse quoted sender JID: %v, using as-is", err)
+		} else {
+			quotedSender = quotedSenderJID.String()
+		}
+
+		// Add context info for reply
+		imageMsg.ContextInfo = &waProto.ContextInfo{
+			StanzaID:      proto.String(replyToMessageID),
+			Participant:   proto.String(quotedSender),
+			QuotedMessage: &waProto.Message{},
+		}
+	}
+
+	c.logger.Infof("Sending image (%s, %d bytes) to group %s", mimeType, len(imageData), groupJID)
+
+	_, err = c.client.SendMessage(ctx, jid, msg)
+	if err != nil {
+		return fmt.Errorf("failed to send image: %w", err)
 	}
 
 	return nil
@@ -235,20 +346,50 @@ func (c *Client) eventHandler(evt interface{}) {
 		var content string
 		var isReplyToBot bool
 
-		if v.Message.GetConversation() != "" {
-			content = v.Message.GetConversation()
-		} else if v.Message.GetExtendedTextMessage() != nil {
+		// Check ExtendedTextMessage first (for replies and formatted text)
+		if v.Message.GetExtendedTextMessage() != nil {
 			extMsg := v.Message.GetExtendedTextMessage()
 			content = extMsg.GetText()
 
+			c.logger.Debugf("ExtendedTextMessage detected, content: %s", content)
+
 			// Check if this is a reply to bot's message
-			if extMsg.ContextInfo != nil && extMsg.ContextInfo.StanzaID != nil {
-				// Check if the quoted message is from the bot
-				quotedMsg := extMsg.ContextInfo.GetParticipant()
-				if quotedMsg != "" && quotedMsg == c.client.Store.ID.String() {
-					isReplyToBot = true
+			if extMsg.ContextInfo != nil {
+				c.logger.Debugf("ContextInfo present - StanzaID: %v", extMsg.ContextInfo.StanzaID != nil)
+
+				if extMsg.ContextInfo.StanzaID != nil {
+					// Check if the quoted message is from the bot
+					quotedParticipant := extMsg.ContextInfo.GetParticipant()
+					botJID := c.client.Store.ID.String()
+					botUser := c.client.Store.ID.User // e.g., "919539383208"
+
+					// Try to get bot's LID for this group
+					botLID := c.getBotLID(groupJID)
+
+					c.logger.Debugf("Reply detected - Quoted: '%s', Bot JID: '%s', Bot User: '%s', Bot LID: '%s'",
+						quotedParticipant, botJID, botUser, botLID)
+
+					// Check if quoted participant matches bot
+					if quotedParticipant != "" {
+						// Check multiple formats:
+						// 1. Direct JID match (919539383208:27@s.whatsapp.net)
+						// 2. LID match (129468098179230@lid)
+						// 3. Prefix matches for device IDs
+						if quotedParticipant == botJID ||
+						   quotedParticipant == botLID ||
+						   strings.HasPrefix(quotedParticipant, botJID) ||
+						   strings.HasPrefix(botJID, quotedParticipant) {
+							isReplyToBot = true
+							c.logger.Infof("✓ Message is a reply to bot from %s", v.Info.Sender.String())
+						} else {
+							c.logger.Debugf("Reply to someone else: %s", quotedParticipant)
+						}
+					}
 				}
 			}
+		} else if v.Message.GetConversation() != "" {
+			content = v.Message.GetConversation()
+			c.logger.Debugf("Regular conversation message, content: %s", content)
 		}
 
 		if content == "" {
@@ -292,6 +433,42 @@ func (c *Client) UpdateAllowedGroups(groups []string) {
 	for _, group := range groups {
 		c.allowedGroups[group] = true
 	}
+}
+
+// getBotLID gets the bot's LID (Linked ID) for a specific group
+func (c *Client) getBotLID(groupJID string) string {
+	if c.client == nil || c.client.Store == nil {
+		return ""
+	}
+
+	// Check cache first
+	c.cacheMu.RLock()
+	if lid, ok := c.botLIDCache[groupJID]; ok {
+		c.cacheMu.RUnlock()
+		return lid
+	}
+	c.cacheMu.RUnlock()
+
+	// Get the bot's LID from the device store
+	// The Device.LID field contains the bot's Linked ID
+	lid := c.client.Store.LID
+	if lid.IsEmpty() {
+		c.logger.Warnf("Bot LID is empty from device store")
+		return ""
+	}
+
+	// Format: "129468098179230@lid" (without device suffix)
+	// But the Device.LID might include device number like "129468098179230:27@lid"
+	// We need just the base "129468098179230@lid"
+	lidStr := lid.User + "@lid"
+
+	// Cache it
+	c.cacheMu.Lock()
+	c.botLIDCache[groupJID] = lidStr
+	c.cacheMu.Unlock()
+
+	c.logger.Infof("Using bot LID from device store for group %s: %s", groupJID, lidStr)
+	return lidStr
 }
 
 // generateQRDataURL converts QR code to data URL

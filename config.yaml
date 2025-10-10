@@ -10,17 +10,30 @@ whatsapp:
     trigger_words:
         - '@sasi'
         - '@SASI'
+# ollama:
+#     url: http://192.168.1.245:11434
+#     model: gpt-oss:latest
+#     temperature: 0.7
+#     timeout: 300s
 ollama:
-    url: http://192.168.1.245:11434
-    model: gpt-oss:latest
+    url: http://192.168.1.222:11434
+    model: gemma3n:e2b
     temperature: 0.7
     timeout: 300s
+
 storage:
     type: memory
+
 webhooks:
     - sub_trigger: '@family'
-      url: http://192.168.1.132:5678/webhook/5a1a5bd0-0ff3-4393-9317-8da7f64c314e
-      timeout: 60s
+      url: http://192.168.1.133:5678/webhook/5a1a5bd0-0ff3-4393-9317-8da7f64c314e
+      timeout: 360s
     - sub_trigger: '@web'
-      url: http://192.168.1.132:5678/webhook1/5a1a5bd0-0ff3-4393-9317-8da7f64c314e
-      timeout: 60s
+      url: http://192.168.1.133:5678/webhook/fdc38f9c-5484-47fb-9965-7bdc36c9e37c
+      timeout: 360s
+    - sub_trigger: '@img'
+      url: http://192.168.1.133:5678/webhook/4a4ad727-e276-403d-bc46-e82b9e7b40ee
+      timeout: 360s
+    - sub_trigger: '@food'
+      url: http://192.168.1.133:5678/webhook/477050a6-12cf-4c04-8c87-a8aea11f71b1
+      timeout: 360s

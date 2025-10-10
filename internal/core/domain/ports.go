@@ -20,6 +20,8 @@ type WhatsAppClient interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	SendMessage(ctx context.Context, groupJID, message string) error
+	SendReply(ctx context.Context, groupJID, message, replyToMessageID, quotedSender string) error
+	SendImage(ctx context.Context, groupJID string, imageData []byte, mimeType, caption, replyToMessageID, quotedSender string) error
 	GetGroups(ctx context.Context) ([]*Group, error)
 	GetAuthStatus(ctx context.Context) (*AuthStatus, error)
 	OnMessage(handler func(*Message))
@@ -46,5 +48,5 @@ type GroupManager interface {
 
 // WebhookClient defines the interface for webhook interactions
 type WebhookClient interface {
-	Call(ctx context.Context, url string, message string) (string, error)
+	Call(ctx context.Context, url string, message string) (*WebhookResponse, error)
 }

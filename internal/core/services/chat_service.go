@@ -119,9 +119,9 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 	if err != nil || response.Error != nil {
 		s.logger.Error("Failed to generate LLM response", "error", err)
 
-		// Send user-friendly error message
+		// Send user-friendly error message as a reply
 		errorMsg := "Sorry, I cannot process this request right now due to a technical error. Please try again later."
-		if err := s.whatsapp.SendMessage(ctx, message.GroupJID, errorMsg); err != nil {
+		if err := s.whatsapp.SendReply(ctx, message.GroupJID, errorMsg, message.ID, message.Sender); err != nil {
 			s.logger.Error("Failed to send error message", "error", err)
 		}
 		return fmt.Errorf("failed to generate response: %w", err)
@@ -129,8 +129,8 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 
 	s.logger.Info("Generated response", "content", response.Content)
 
-	// Send response back to WhatsApp
-	if err := s.whatsapp.SendMessage(ctx, message.GroupJID, response.Content); err != nil {
+	// Send response back to WhatsApp as a reply to the original message
+	if err := s.whatsapp.SendReply(ctx, message.GroupJID, response.Content, message.ID, message.Sender); err != nil {
 		s.logger.Error("Failed to send message", "error", err)
 		return fmt.Errorf("failed to send message: %w", err)
 	}
@@ -202,20 +202,36 @@ func (s *ChatService) processWebhookMessage(ctx context.Context, message *domain
 	if err != nil {
 		s.logger.Error("Failed to call webhook", "error", err, "url", webhook.URL)
 
-		// Send user-friendly error message
+		// Send user-friendly error message as a reply
 		errorMsg := "Sorry, I cannot process this request right now due to a technical error. Please try again later."
-		if err := s.whatsapp.SendMessage(ctx, message.GroupJID, errorMsg); err != nil {
+		if err := s.whatsapp.SendReply(ctx, message.GroupJID, errorMsg, message.ID, message.Sender); err != nil {
 			s.logger.Error("Failed to send error message", "error", err)
 		}
 		return fmt.Errorf("failed to call webhook: %w", err)
 	}
 
-	s.logger.Info("Webhook response received", "response", response)
+	s.logger.Info("Webhook response received", "type", response.ContentType)
 
-	// Send webhook response back to WhatsApp
-	if err := s.whatsapp.SendMessage(ctx, message.GroupJID, response); err != nil {
-		s.logger.Error("Failed to send webhook response", "error", err)
-		return fmt.Errorf("failed to send message: %w", err)
+	// Send webhook response back to WhatsApp based on content type
+	var responseContent string
+	if response.ContentType == "image/jpeg" || response.ContentType == "image/png" {
+		// Send as image
+		s.logger.Info("Sending image response", "size", len(response.Content), "mime", response.ContentType)
+		if err := s.whatsapp.SendImage(ctx, message.GroupJID, response.Content, response.ContentType, "", message.ID, message.Sender); err != nil {
+			s.logger.Error("Failed to send image response", "error", err)
+			return fmt.Errorf("failed to send image: %w", err)
+		}
+		responseContent = "[Image sent]"
+	} else {
+		// Format text response for WhatsApp
+		formattedText := FormatWebhookResponse(response.TextContent)
+
+		// Send as text reply
+		if err := s.whatsapp.SendReply(ctx, message.GroupJID, formattedText, message.ID, message.Sender); err != nil {
+			s.logger.Error("Failed to send webhook response", "error", err)
+			return fmt.Errorf("failed to send message: %w", err)
+		}
+		responseContent = formattedText
 	}
 
 	// Save bot response
@@ -223,7 +239,7 @@ func (s *ChatService) processWebhookMessage(ctx context.Context, message *domain
 		ID:        fmt.Sprintf("bot-%d", message.Timestamp.Unix()),
 		GroupJID:  message.GroupJID,
 		Sender:    "bot",
-		Content:   response,
+		Content:   responseContent,
 		Timestamp: message.Timestamp,
 		IsFromBot: true,
 	}

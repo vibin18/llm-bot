@@ -64,6 +64,13 @@ type WebhookConfig struct {
 	Timeout    string `yaml:"timeout" json:"timeout"` // e.g., "60s", "2m"
 }
 
+// WebhookResponse represents a response from a webhook
+type WebhookResponse struct {
+	ContentType string // "text", "image/jpeg", "image/png"
+	Content     []byte // Raw content (text or image data)
+	TextContent string // Convenience field for text responses
+}
+
 // LLMRequest represents a request to the LLM
 type LLMRequest struct {
 	Prompt  string
