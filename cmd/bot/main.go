@@ -15,6 +15,7 @@ import (
 	"github.com/vibin/whatsapp-llm-bot/internal/adapters/secondary/storage"
 	"github.com/vibin/whatsapp-llm-bot/internal/adapters/secondary/webhook"
 	"github.com/vibin/whatsapp-llm-bot/internal/config"
+	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
 	"github.com/vibin/whatsapp-llm-bot/internal/core/services"
 	waLog "go.mau.fi/whatsmeow/util/log"
 
@@ -24,9 +25,12 @@ import (
 func main() {
 	ctx := context.Background()
 
+	// Setup a basic logger first for initial config loading
+	basicLogger := setupLogger("info")
+
 	// Load configuration
 	configPath := getEnv("CONFIG_PATH", "config.yaml")
-	configStore := config.NewFileConfigStore(configPath)
+	configStore := config.NewFileConfigStore(configPath, basicLogger)
 
 	cfg, err := configStore.Load()
 	if err != nil {
@@ -34,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup logger
+	// Setup logger with configured level
 	logger := setupLogger(cfg.App.LogLevel)
 	logger.Info("Starting WhatsApp LLM Bot", "version", "1.0.0")
 
@@ -136,6 +140,27 @@ func main() {
 		logger.Error("Failed to start HTTP server", "error", err)
 		os.Exit(1)
 	}
+
+	// Setup config file watcher for automatic reload
+	if err := configStore.Watch(func(newConfig *domain.Config) {
+		logger.Info("Configuration changed, reloading...",
+			"webhooks", len(newConfig.Webhooks),
+			"trigger_words", len(newConfig.WhatsApp.TriggerWords),
+			"allowed_groups", len(newConfig.WhatsApp.AllowedGroups))
+
+		// Update chat service with new webhook configs and trigger words
+		chatService.UpdateWebhooks(newConfig.Webhooks)
+		chatService.UpdateTriggerWords(newConfig.WhatsApp.TriggerWords)
+
+		// Sync group manager with new allowed groups
+		if err := groupMgr.SyncWithConfig(); err != nil {
+			logger.Error("Failed to sync group manager after config reload", "error", err)
+		}
+	}); err != nil {
+		logger.Error("Failed to setup config watcher", "error", err)
+		// Don't exit, just log the error
+	}
+	defer configStore.Close()
 
 	logger.Info("Bot is running", "admin_url", fmt.Sprintf("http://localhost:%d", cfg.App.Port))
 

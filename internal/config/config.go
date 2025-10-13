@@ -2,25 +2,33 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
 	"gopkg.in/yaml.v3"
 )
 
 // FileConfigStore implements ConfigStore using YAML files
 type FileConfigStore struct {
-	filePath string
-	config   *domain.Config
-	mu       sync.RWMutex
+	filePath  string
+	config    *domain.Config
+	mu        sync.RWMutex
+	logger    *slog.Logger
+	callbacks []func(*domain.Config)
+	watcher   *fsnotify.Watcher
 }
 
 // NewFileConfigStore creates a new file-based config store
-func NewFileConfigStore(filePath string) *FileConfigStore {
+func NewFileConfigStore(filePath string, logger *slog.Logger) *FileConfigStore {
 	return &FileConfigStore{
-		filePath: filePath,
+		filePath:  filePath,
+		logger:    logger,
+		callbacks: make([]func(*domain.Config), 0),
 	}
 }
 
@@ -100,10 +108,101 @@ func (s *FileConfigStore) GetAllowedGroups() ([]string, error) {
 	return s.config.WhatsApp.AllowedGroups, nil
 }
 
-// Watch monitors config file for changes (simplified implementation)
+// Watch monitors config file for changes and reloads automatically
 func (s *FileConfigStore) Watch(callback func(*domain.Config)) error {
-	// Note: Full implementation would use fsnotify or similar
-	// For now, this is a placeholder for hot-reload capability
+	s.mu.Lock()
+	s.callbacks = append(s.callbacks, callback)
+
+	// Start watcher if not already started
+	if s.watcher == nil {
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			s.mu.Unlock()
+			return fmt.Errorf("failed to create file watcher: %w", err)
+		}
+		s.watcher = watcher
+		s.mu.Unlock()
+
+		// Start watching in a goroutine
+		go s.watchLoop()
+
+		// Add the config file to watch
+		if err := s.watcher.Add(s.filePath); err != nil {
+			return fmt.Errorf("failed to watch config file: %w", err)
+		}
+
+		s.logger.Info("Config file watcher started", "file", s.filePath)
+	} else {
+		s.mu.Unlock()
+	}
+
+	return nil
+}
+
+// watchLoop monitors file changes and triggers reload
+func (s *FileConfigStore) watchLoop() {
+	debounceTimer := time.NewTimer(0)
+	<-debounceTimer.C // Drain the initial timer
+
+	for {
+		select {
+		case event, ok := <-s.watcher.Events:
+			if !ok {
+				return
+			}
+
+			// Only reload on write or create events
+			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+				// Debounce: wait 500ms before reloading to avoid multiple rapid reloads
+				debounceTimer.Reset(500 * time.Millisecond)
+				go func() {
+					<-debounceTimer.C
+					s.reloadConfig()
+				}()
+			}
+
+		case err, ok := <-s.watcher.Errors:
+			if !ok {
+				return
+			}
+			s.logger.Error("Config watcher error", "error", err)
+		}
+	}
+}
+
+// reloadConfig reloads the configuration and notifies callbacks
+func (s *FileConfigStore) reloadConfig() {
+	s.logger.Info("Reloading configuration from file", "file", s.filePath)
+
+	config, err := s.Load()
+	if err != nil {
+		s.logger.Error("Failed to reload config", "error", err)
+		return
+	}
+
+	s.logger.Info("Configuration reloaded successfully",
+		"webhooks_count", len(config.Webhooks),
+		"allowed_groups_count", len(config.WhatsApp.AllowedGroups))
+
+	// Notify all callbacks
+	s.mu.RLock()
+	callbacks := make([]func(*domain.Config), len(s.callbacks))
+	copy(callbacks, s.callbacks)
+	s.mu.RUnlock()
+
+	for _, callback := range callbacks {
+		callback(config)
+	}
+}
+
+// Close stops the file watcher
+func (s *FileConfigStore) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.watcher != nil {
+		return s.watcher.Close()
+	}
 	return nil
 }
 

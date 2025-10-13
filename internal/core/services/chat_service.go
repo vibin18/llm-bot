@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
@@ -19,6 +20,7 @@ type ChatService struct {
 	webhookClient  domain.WebhookClient
 	triggerWords   []string
 	webhookConfigs []domain.WebhookConfig
+	configMu       sync.RWMutex
 	logger         *slog.Logger
 }
 
@@ -54,12 +56,16 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 	}
 
 	// Check if message starts with any trigger word OR is a reply to bot
-	if len(s.triggerWords) > 0 && !message.IsReplyToBot {
+	s.configMu.RLock()
+	triggerWords := s.triggerWords
+	s.configMu.RUnlock()
+
+	if len(triggerWords) > 0 && !message.IsReplyToBot {
 		trimmedContent := strings.TrimSpace(message.Content)
 		triggered := false
 		var matchedTrigger string
 
-		for _, trigger := range s.triggerWords {
+		for _, trigger := range triggerWords {
 			if strings.HasPrefix(trimmedContent, trigger) {
 				triggered = true
 				matchedTrigger = trigger
@@ -71,7 +77,7 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 
 		if !triggered {
 			s.logger.Debug("Message doesn't start with any trigger word and is not a reply",
-				"triggers", s.triggerWords,
+				"triggers", triggerWords,
 				"content", message.Content)
 			return nil
 		}
@@ -155,6 +161,9 @@ func (s *ChatService) ProcessMessage(ctx context.Context, message *domain.Messag
 // findMatchingWebhook finds a webhook config that matches the message content
 func (s *ChatService) findMatchingWebhook(content string) *domain.WebhookConfig {
 	trimmedContent := strings.TrimSpace(content)
+
+	s.configMu.RLock()
+	defer s.configMu.RUnlock()
 
 	for i := range s.webhookConfigs {
 		webhook := &s.webhookConfigs[i]
@@ -262,4 +271,22 @@ func (s *ChatService) Start(ctx context.Context) error {
 
 	s.logger.Info("Chat service started")
 	return nil
+}
+
+// UpdateWebhooks updates the webhook configurations dynamically
+func (s *ChatService) UpdateWebhooks(webhooks []domain.WebhookConfig) {
+	s.configMu.Lock()
+	defer s.configMu.Unlock()
+
+	s.webhookConfigs = webhooks
+	s.logger.Info("Webhooks updated", "count", len(webhooks))
+}
+
+// UpdateTriggerWords updates the trigger words dynamically
+func (s *ChatService) UpdateTriggerWords(triggerWords []string) {
+	s.configMu.Lock()
+	defer s.configMu.Unlock()
+
+	s.triggerWords = triggerWords
+	s.logger.Info("Trigger words updated", "count", len(triggerWords))
 }

@@ -18,6 +18,7 @@ require (
 	github.com/beeper/argo-go v1.1.2 // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/elliotchance/orderedmap/v3 v3.1.0 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

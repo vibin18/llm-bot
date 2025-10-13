@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
@@ -17,6 +19,12 @@ type ScheduleRepository struct {
 
 // NewScheduleRepository creates a new schedule repository
 func NewScheduleRepository(dbPath string) (*ScheduleRepository, error) {
+	// Ensure the directory exists
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create database directory: %w", err)
+	}
+
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
