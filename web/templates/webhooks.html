@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhooks - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .btn-delete {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            background: #f44336;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #da190b;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .webhook-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 Webhooks</h1>
+            <p class="subtitle">
+                <a href="/" class="back-link">← Back to Dashboard</a>
+            </p>
+        </header>
+
+        <div class="info-box">
+            <strong>ℹ️ About Webhooks:</strong> Webhooks allow you to trigger external services from WhatsApp messages.
+            When a message contains a sub-trigger word, the bot will call the configured webhook URL with the message content.
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="showAddWebhookForm()">➕ Add Webhook</button>
+        </div>
+
+        <div id="webhook-form" class="webhook-form">
+            <h3 id="form-title">Add New Webhook</h3>
+            <form id="webhook-form-element" onsubmit="saveWebhook(event)">
+                <div class="form-group">
+                    <label for="webhook-url">Webhook URL*</label>
+                    <input type="url" id="webhook-url" placeholder="https://example.com/webhook" required>
+                    <small>The URL that will be called when the sub-trigger is detected</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="sub-trigger">Sub-Trigger Word*</label>
+                    <input type="text" id="sub-trigger" placeholder="e.g., weather, news" required>
+                    <small>When a message contains this word, the webhook will be triggered</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Save</button>
+                    <button type="button" onclick="hideWebhookForm()" style="background: #999; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <section class="section">
+            <h2>Configured Webhooks</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Webhook URL</th>
+                        <th>Sub-Trigger</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="webhooks-tbody">
+                    <tr><td colspan="3" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script src="/static/js/webhooks.js"></script>
+</body>
+</html>

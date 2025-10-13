@@ -181,6 +181,15 @@ A Go application using hexagonal architecture that listens to WhatsApp group cha
   - Admin UI for webhook management
   - Synchronous config updates
 
+### Phase 12: Scheduling and store 
+- Create a new schduling service
+- Scheduling service that creates reminders that triggers a webhook on a specific date and time.
+- Extend the existing UI that will take a schedule with the "whatsapp group",  "day and time without year" and a "webhooh-url" to trigger.
+- Create small database in sqlite to store the schedule so that the saved schedules are not lost after restart.
+- Fuctionality of the Scheduling is to trigger a webhook and wait for the response from the webhook and format the respone in whatsapp friendly message and send it to the specified whatsapp group in the trigger
+- Make the UI looks stylish and intiutive
+- keep the database file in data directory
+
 ## Configuration Schema (config.yaml)
 
 ```yaml
@@ -273,3 +282,5 @@ require (
 3. Build adapters incrementally
 4. Test each component before integration
 5. Containerize once core features are stable
+
+

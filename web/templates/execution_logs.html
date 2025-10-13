@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execution Logs - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .filter-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-section select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .duration {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .error-details {
+            color: #721c24;
+            font-size: 0.85rem;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .response-preview {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Execution Logs</h1>
+            <p class="subtitle"><a href="/schedules" class="back-link">← Back to Schedules</a></p>
+        </header>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-executions">-</div>
+                <div class="stat-label">Total Executions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-count" style="color: #28a745;">-</div>
+                <div class="stat-label">Successful</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="failed-count" style="color: #dc3545;">-</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="success-rate">-</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <label for="schedule-filter">Filter by Schedule:</label>
+            <select id="schedule-filter">
+                <option value="">All Schedules</option>
+            </select>
+            <label for="status-filter">Status:</label>
+            <select id="status-filter">
+                <option value="">All</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Schedule</th>
+                    <th>Executed At</th>
+                    <th>Status</th>
+                    <th>Response Preview</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="logs-tbody">
+                <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="/static/js/execution_logs.js"></script>
+</body>
+</html>

@@ -88,6 +88,13 @@ func main() {
 	// Initialize webhook client
 	webhookClient := webhook.NewClient(30 * time.Second)
 
+	// Initialize schedule repository
+	scheduleRepo, err := storage.NewScheduleRepository("/data/schedules.db")
+	if err != nil {
+		logger.Error("Failed to create schedule repository", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize chat service
 	chatService := services.NewChatService(
 		llmProvider,
@@ -113,9 +120,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize scheduler service
+	schedulerService := services.NewSchedulerService(scheduleRepo, webhookClient, waClient, logger)
+	if err := schedulerService.Start(ctx); err != nil {
+		logger.Error("Failed to start scheduler", "error", err)
+	}
+	defer schedulerService.Stop()
+
 	// Initialize HTTP server
 	httpHandlers := http.NewHandlers(waClient, groupMgr, configStore, logger)
-	httpServer := http.NewServer(cfg.App.Port, httpHandlers, logger)
+	scheduleHandlers := http.NewScheduleHandlers(schedulerService)
+	httpServer := http.NewServer(cfg.App.Port, httpHandlers, scheduleHandlers, logger)
 
 	if err := httpServer.Start(ctx); err != nil {
 		logger.Error("Failed to start HTTP server", "error", err)

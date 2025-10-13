@@ -255,6 +255,10 @@ func (c *Client) GetGroups(ctx context.Context) ([]*domain.Group, error) {
 		return nil, fmt.Errorf("client not initialized")
 	}
 
+	if !c.client.IsConnected() {
+		return nil, fmt.Errorf("client not connected")
+	}
+
 	groups, err := c.client.GetJoinedGroups(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get groups: %w", err)

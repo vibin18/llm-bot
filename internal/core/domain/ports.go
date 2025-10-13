@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // MessageRepository defines the interface for message storage
 type MessageRepository interface {
@@ -49,4 +52,19 @@ type GroupManager interface {
 // WebhookClient defines the interface for webhook interactions
 type WebhookClient interface {
 	Call(ctx context.Context, url string, message string) (*WebhookResponse, error)
+}
+
+// ScheduleRepository defines the interface for schedule storage
+type ScheduleRepository interface {
+	Create(ctx context.Context, schedule *Schedule) error
+	GetByID(ctx context.Context, id string) (*Schedule, error)
+	GetAll(ctx context.Context) ([]*Schedule, error)
+	GetEnabled(ctx context.Context) ([]*Schedule, error)
+	Update(ctx context.Context, schedule *Schedule) error
+	Delete(ctx context.Context, id string) error
+	UpdateLastRun(ctx context.Context, id string, lastRun time.Time) error
+
+	// Execution logging
+	LogExecution(ctx context.Context, execution *ScheduleExecution) error
+	GetExecutions(ctx context.Context, scheduleID string, limit int) ([]*ScheduleExecution, error)
 }

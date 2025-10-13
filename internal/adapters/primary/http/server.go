@@ -12,16 +12,18 @@ import (
 
 // Server represents the HTTP server
 type Server struct {
-	server   *http.Server
-	handlers *Handlers
-	logger   *slog.Logger
+	server           *http.Server
+	handlers         *Handlers
+	scheduleHandlers *ScheduleHandlers
+	logger           *slog.Logger
 }
 
 // NewServer creates a new HTTP server
-func NewServer(port int, handlers *Handlers, logger *slog.Logger) *Server {
+func NewServer(port int, handlers *Handlers, scheduleHandlers *ScheduleHandlers, logger *slog.Logger) *Server {
 	return &Server{
-		handlers: handlers,
-		logger:   logger,
+		handlers:         handlers,
+		scheduleHandlers: scheduleHandlers,
+		logger:           logger,
 		server: &http.Server{
 			Addr:         fmt.Sprintf(":%d", port),
 			ReadTimeout:  15 * time.Second,
@@ -47,8 +49,22 @@ func (s *Server) Start(ctx context.Context) error {
 	api.HandleFunc("/auth/qr", s.handlers.GetQRCode).Methods("GET")
 	api.HandleFunc("/health", s.handlers.HealthCheck).Methods("GET")
 
+	// Schedule routes
+	if s.scheduleHandlers != nil {
+		api.HandleFunc("/schedules", s.scheduleHandlers.GetSchedules).Methods("GET")
+		api.HandleFunc("/schedules", s.scheduleHandlers.CreateSchedule).Methods("POST")
+		api.HandleFunc("/schedules/{id}", s.scheduleHandlers.GetSchedule).Methods("GET")
+		api.HandleFunc("/schedules/{id}", s.scheduleHandlers.UpdateSchedule).Methods("PUT")
+		api.HandleFunc("/schedules/{id}", s.scheduleHandlers.DeleteSchedule).Methods("DELETE")
+		api.HandleFunc("/schedules/{id}/executions", s.scheduleHandlers.GetScheduleExecutions).Methods("GET")
+	}
+
 	// Static files and admin UI
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	router.HandleFunc("/schedules", s.serveSchedulesUI).Methods("GET")
+	router.HandleFunc("/execution-logs", s.serveExecutionLogsUI).Methods("GET")
+	router.HandleFunc("/groups", s.serveGroupsUI).Methods("GET")
+	router.HandleFunc("/webhooks", s.serveWebhooksUI).Methods("GET")
 	router.HandleFunc("/", s.serveAdminUI).Methods("GET")
 
 	// Add CORS middleware
@@ -79,6 +95,26 @@ func (s *Server) Stop(ctx context.Context) error {
 // serveAdminUI serves the admin UI page
 func (s *Server) serveAdminUI(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "web/templates/admin.html")
+}
+
+// serveSchedulesUI serves the schedules UI page
+func (s *Server) serveSchedulesUI(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/templates/schedules.html")
+}
+
+// serveExecutionLogsUI serves the execution logs UI page
+func (s *Server) serveExecutionLogsUI(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/templates/execution_logs.html")
+}
+
+// serveGroupsUI serves the groups management UI page
+func (s *Server) serveGroupsUI(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/templates/groups.html")
+}
+
+// serveWebhooksUI serves the webhooks management UI page
+func (s *Server) serveWebhooksUI(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/templates/webhooks.html")
 }
 
 // corsMiddleware adds CORS headers

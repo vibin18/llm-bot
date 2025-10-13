@@ -55,6 +55,7 @@ docker-run: ## Run Docker container
 	docker run -d \
 		--name $(APP_NAME) \
 		-p 8080:8080 \
+		-e TZ=Europe/Brussels \
 		-v $(PWD)/data:/data \
 		-v $(PWD)/config.yaml:/config/config.yaml \
 		$(DOCKER_IMAGE)

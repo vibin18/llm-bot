@@ -71,6 +71,35 @@ type WebhookResponse struct {
 	TextContent string // Convenience field for text responses
 }
 
+// Schedule represents a scheduled webhook trigger
+type Schedule struct {
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	GroupJID     string     `json:"group_jid"`
+	WebhookURL   string     `json:"webhook_url"`
+	ScheduleType string     `json:"schedule_type"`            // "weekly", "yearly", "once"
+	DayOfWeek    *int       `json:"day_of_week,omitempty"`    // 0 = Sunday, 6 = Saturday (for weekly)
+	Month        *int       `json:"month,omitempty"`          // 1-12 (for yearly)
+	DayOfMonth   *int       `json:"day_of_month,omitempty"`   // 1-31 (for yearly)
+	Hour         int        `json:"hour"`                     // 0-23
+	Minute       int        `json:"minute"`                   // 0-59
+	SpecificDate *time.Time `json:"specific_date,omitempty"`  // Specific date for one-time schedules
+	Enabled      bool       `json:"enabled"`
+	LastRun      *time.Time `json:"last_run,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// ScheduleExecution represents a log of schedule execution
+type ScheduleExecution struct {
+	ID         string    `json:"id"`
+	ScheduleID string    `json:"schedule_id"`
+	ExecutedAt time.Time `json:"executed_at"`
+	Success    bool      `json:"success"`
+	Error      string    `json:"error,omitempty"`
+	Response   string    `json:"response,omitempty"`
+}
+
 // LLMRequest represents a request to the LLM
 type LLMRequest struct {
 	Prompt  string
