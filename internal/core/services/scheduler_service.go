@@ -235,8 +235,15 @@ func (s *SchedulerService) executeSchedule(ctx context.Context, schedule *domain
 		s.logger.Error("Failed to update last run", "error", err, "schedule_id", schedule.ID)
 	}
 
-	// Call webhook with empty message (webhook can return scheduled content)
-	response, err := s.webhookClient.Call(ctx, schedule.WebhookURL, "")
+	// Call webhook with custom prompt if enabled
+	var message string
+	if schedule.UsePrompt {
+		message = schedule.Prompt
+		s.logger.Info("Calling webhook with custom prompt", "schedule_id", schedule.ID, "prompt_length", len(message))
+	} else {
+		s.logger.Info("Calling webhook with empty message (prompt disabled)", "schedule_id", schedule.ID)
+	}
+	response, err := s.webhookClient.Call(ctx, schedule.WebhookURL, message)
 	if err != nil {
 		s.logger.Error("Failed to call webhook for schedule",
 			"error", err,

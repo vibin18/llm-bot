@@ -46,6 +46,8 @@ func (r *ScheduleRepository) initialize() error {
 		name TEXT NOT NULL,
 		group_jid TEXT NOT NULL,
 		webhook_url TEXT NOT NULL,
+		use_prompt BOOLEAN NOT NULL DEFAULT 0,
+		prompt TEXT,
 		schedule_type TEXT NOT NULL DEFAULT 'weekly',
 		day_of_week INTEGER,
 		month INTEGER,
@@ -84,8 +86,8 @@ func (r *ScheduleRepository) initialize() error {
 // Create creates a new schedule
 func (r *ScheduleRepository) Create(ctx context.Context, schedule *domain.Schedule) error {
 	query := `
-		INSERT INTO schedules (id, name, group_jid, webhook_url, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO schedules (id, name, group_jid, webhook_url, use_prompt, prompt, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	var specificDate *string
@@ -99,6 +101,8 @@ func (r *ScheduleRepository) Create(ctx context.Context, schedule *domain.Schedu
 		schedule.Name,
 		schedule.GroupJID,
 		schedule.WebhookURL,
+		schedule.UsePrompt,
+		schedule.Prompt,
 		schedule.ScheduleType,
 		schedule.DayOfWeek,
 		schedule.Month,
@@ -117,7 +121,7 @@ func (r *ScheduleRepository) Create(ctx context.Context, schedule *domain.Schedu
 // GetByID retrieves a schedule by ID
 func (r *ScheduleRepository) GetByID(ctx context.Context, id string) (*domain.Schedule, error) {
 	query := `
-		SELECT id, name, group_jid, webhook_url, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
+		SELECT id, name, group_jid, webhook_url, use_prompt, prompt, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
 		FROM schedules WHERE id = ?
 	`
 
@@ -125,12 +129,15 @@ func (r *ScheduleRepository) GetByID(ctx context.Context, id string) (*domain.Sc
 	var lastRun sql.NullTime
 	var dayOfWeek, month, dayOfMonth sql.NullInt64
 	var specificDate sql.NullString
+	var prompt sql.NullString
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&schedule.ID,
 		&schedule.Name,
 		&schedule.GroupJID,
 		&schedule.WebhookURL,
+		&schedule.UsePrompt,
+		&prompt,
 		&schedule.ScheduleType,
 		&dayOfWeek,
 		&month,
@@ -149,6 +156,10 @@ func (r *ScheduleRepository) GetByID(ctx context.Context, id string) (*domain.Sc
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	if prompt.Valid {
+		schedule.Prompt = prompt.String
 	}
 
 	if dayOfWeek.Valid {
@@ -183,7 +194,7 @@ func (r *ScheduleRepository) GetByID(ctx context.Context, id string) (*domain.Sc
 // GetAll retrieves all schedules
 func (r *ScheduleRepository) GetAll(ctx context.Context) ([]*domain.Schedule, error) {
 	query := `
-		SELECT id, name, group_jid, webhook_url, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
+		SELECT id, name, group_jid, webhook_url, use_prompt, prompt, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
 		FROM schedules ORDER BY schedule_type, specific_date, month, day_of_month, day_of_week, hour, minute
 	`
 
@@ -199,7 +210,7 @@ func (r *ScheduleRepository) GetAll(ctx context.Context) ([]*domain.Schedule, er
 // GetEnabled retrieves all enabled schedules
 func (r *ScheduleRepository) GetEnabled(ctx context.Context) ([]*domain.Schedule, error) {
 	query := `
-		SELECT id, name, group_jid, webhook_url, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
+		SELECT id, name, group_jid, webhook_url, use_prompt, prompt, schedule_type, day_of_week, month, day_of_month, hour, minute, specific_date, enabled, last_run, created_at, updated_at
 		FROM schedules WHERE enabled = 1 ORDER BY schedule_type, specific_date, month, day_of_month, day_of_week, hour, minute
 	`
 
@@ -216,7 +227,7 @@ func (r *ScheduleRepository) GetEnabled(ctx context.Context) ([]*domain.Schedule
 func (r *ScheduleRepository) Update(ctx context.Context, schedule *domain.Schedule) error {
 	query := `
 		UPDATE schedules
-		SET name = ?, group_jid = ?, webhook_url = ?, schedule_type = ?, day_of_week = ?, month = ?, day_of_month = ?, hour = ?, minute = ?, specific_date = ?, enabled = ?, updated_at = ?
+		SET name = ?, group_jid = ?, webhook_url = ?, use_prompt = ?, prompt = ?, schedule_type = ?, day_of_week = ?, month = ?, day_of_month = ?, hour = ?, minute = ?, specific_date = ?, enabled = ?, updated_at = ?
 		WHERE id = ?
 	`
 
@@ -230,6 +241,8 @@ func (r *ScheduleRepository) Update(ctx context.Context, schedule *domain.Schedu
 		schedule.Name,
 		schedule.GroupJID,
 		schedule.WebhookURL,
+		schedule.UsePrompt,
+		schedule.Prompt,
 		schedule.ScheduleType,
 		schedule.DayOfWeek,
 		schedule.Month,
@@ -331,12 +344,15 @@ func (r *ScheduleRepository) scanSchedules(rows *sql.Rows) ([]*domain.Schedule, 
 		var lastRun sql.NullTime
 		var dayOfWeek, month, dayOfMonth sql.NullInt64
 		var specificDate sql.NullString
+		var prompt sql.NullString
 
 		err := rows.Scan(
 			&schedule.ID,
 			&schedule.Name,
 			&schedule.GroupJID,
 			&schedule.WebhookURL,
+			&schedule.UsePrompt,
+			&prompt,
 			&schedule.ScheduleType,
 			&dayOfWeek,
 			&month,
@@ -351,6 +367,10 @@ func (r *ScheduleRepository) scanSchedules(rows *sql.Rows) ([]*domain.Schedule, 
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if prompt.Valid {
+			schedule.Prompt = prompt.String
 		}
 
 		if dayOfWeek.Valid {

@@ -77,6 +77,8 @@ type Schedule struct {
 	Name         string     `json:"name"`
 	GroupJID     string     `json:"group_jid"`
 	WebhookURL   string     `json:"webhook_url"`
+	UsePrompt    bool       `json:"use_prompt"`               // Whether to use custom prompt
+	Prompt       string     `json:"prompt,omitempty"`         // Custom prompt/text to send to webhook
 	ScheduleType string     `json:"schedule_type"`            // "weekly", "yearly", "once"
 	DayOfWeek    *int       `json:"day_of_week,omitempty"`    // 0 = Sunday, 6 = Saturday (for weekly)
 	Month        *int       `json:"month,omitempty"`          // 1-12 (for yearly)

@@ -204,6 +204,22 @@ function resetForm() {
     toggleScheduleType();
 }
 
+// Toggle prompt field visibility
+function togglePromptField() {
+    const usePrompt = document.getElementById('schedule-use-prompt').checked;
+    const promptContainer = document.getElementById('prompt-field-container');
+    const promptTextarea = document.getElementById('schedule-prompt');
+
+    if (usePrompt) {
+        promptContainer.style.display = 'block';
+        promptTextarea.required = true;
+    } else {
+        promptContainer.style.display = 'none';
+        promptTextarea.required = false;
+        promptTextarea.value = ''; // Clear the value when disabled
+    }
+}
+
 // Toggle between schedule types
 function toggleScheduleType() {
     const scheduleType = document.getElementById('schedule-type').value;
@@ -242,10 +258,13 @@ async function saveSchedule(event) {
     const id = document.getElementById('schedule-id').value;
     const scheduleType = document.getElementById('schedule-type').value;
 
+    const usePrompt = document.getElementById('schedule-use-prompt').checked;
     const schedule = {
         name: document.getElementById('schedule-name').value,
         group_jid: document.getElementById('schedule-group').value,
         webhook_url: document.getElementById('schedule-webhook').value,
+        use_prompt: usePrompt,
+        prompt: usePrompt ? document.getElementById('schedule-prompt').value : '',
         schedule_type: scheduleType,
         hour: parseInt(document.getElementById('schedule-hour').value),
         minute: parseInt(document.getElementById('schedule-minute').value),
@@ -295,10 +314,15 @@ async function editSchedule(id) {
         document.getElementById('schedule-name').value = schedule.name;
         document.getElementById('schedule-group').value = schedule.group_jid;
         document.getElementById('schedule-webhook').value = schedule.webhook_url;
+        document.getElementById('schedule-use-prompt').checked = schedule.use_prompt || false;
+        document.getElementById('schedule-prompt').value = schedule.prompt || '';
         document.getElementById('schedule-hour').value = schedule.hour;
         document.getElementById('schedule-minute').value = schedule.minute;
         document.getElementById('schedule-enabled').checked = schedule.enabled;
         document.getElementById('schedule-type').value = schedule.schedule_type || 'weekly';
+
+        // Toggle prompt field visibility based on use_prompt value
+        togglePromptField();
 
         // Handle different schedule types
         if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null) {

@@ -180,7 +180,8 @@
         }
 
         .form-group input,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 12px;
             background: rgba(255, 255, 255, 0.05);
@@ -192,7 +193,8 @@
         }
 
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
             background: rgba(255, 255, 255, 0.08);
@@ -284,6 +286,21 @@
                 <div class="form-group">
                     <label for="schedule-webhook">Webhook URL*</label>
                     <input type="url" id="schedule-webhook" placeholder="https://..." required>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="schedule-use-prompt" onchange="togglePromptField()">
+                        <span>Use Custom Prompt</span>
+                    </label>
+                    <small style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">
+                        Enable this to send a custom message to the webhook instead of an empty request
+                    </small>
+                </div>
+
+                <div class="form-group" id="prompt-field-container" style="display: none;">
+                    <label for="schedule-prompt">Custom Prompt Text*</label>
+                    <textarea id="schedule-prompt" rows="4" placeholder="Enter custom text to send to webhook..." style="width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--text-light); font-size: 1rem; font-family: inherit; resize: vertical;"></textarea>
                 </div>
 
                 <div class="form-group">
