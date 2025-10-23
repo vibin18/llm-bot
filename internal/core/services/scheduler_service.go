@@ -107,9 +107,12 @@ func (s *SchedulerService) checkSchedules(ctx context.Context) {
 	currentDay := int(now.Weekday())
 	currentHour := now.Hour()
 	currentMinute := now.Minute()
+	zone, offset := now.Zone()
 
-	s.logger.Debug("Checking schedules",
+	s.logger.Info("Checking schedules",
 		"current_time", now.Format("2006-01-02 15:04:05"),
+		"timezone", zone,
+		"offset_seconds", offset,
 		"day", currentDay,
 		"hour", currentHour,
 		"minute", currentMinute,
@@ -155,6 +158,14 @@ func (s *SchedulerService) checkSchedules(ctx context.Context) {
 					schedule.Minute == currentMinute
 
 				scheduleInfo = fmt.Sprintf("weekly=day_%d %02d:%02d", *schedule.DayOfWeek, schedule.Hour, schedule.Minute)
+
+				s.logger.Info("Weekly schedule check",
+					"name", schedule.Name,
+					"schedule_day", *schedule.DayOfWeek,
+					"schedule_time", fmt.Sprintf("%02d:%02d", schedule.Hour, schedule.Minute),
+					"current_day", currentDay,
+					"current_time", fmt.Sprintf("%02d:%02d", currentHour, currentMinute),
+					"match", shouldExecute)
 			}
 		}
 

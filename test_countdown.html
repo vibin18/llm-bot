@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Countdown</title>
+</head>
+<body>
+    <h1>Schedule Countdown Test</h1>
+    <div id="output"></div>
+
+    <script>
+        // Simulate server time offset
+        let serverTimeOffset = 0;
+
+        function getServerTime() {
+            return new Date(Date.now() + serverTimeOffset);
+        }
+
+        function calculateNextExecution(schedule) {
+            const now = getServerTime();
+            let nextExec = null;
+
+            if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null && schedule.day_of_week !== undefined) {
+                nextExec = new Date(now);
+                const currentDay = now.getDay();
+                const targetDay = schedule.day_of_week;
+
+                let daysUntil = (targetDay - currentDay + 7) % 7;
+                nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+
+                if (daysUntil === 0 && now >= nextExec) {
+                    daysUntil = 7;
+                }
+
+                nextExec.setDate(now.getDate() + daysUntil);
+
+                console.log('Current day:', currentDay, 'Target day:', targetDay, 'Days until:', daysUntil);
+                console.log('Current time:', now);
+                console.log('Next exec:', nextExec);
+            }
+
+            return nextExec;
+        }
+
+        function formatCountdown(nextExec) {
+            if (!nextExec) return 'N/A';
+
+            const now = getServerTime();
+            const diff = nextExec - now;
+
+            if (diff <= 0) {
+                return 'Due now!';
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            const parts = [];
+            if (days > 0) parts.push(`${days}d`);
+            if (hours > 0 || days > 0) parts.push(`${hours}h`);
+            parts.push(`${minutes}m`);
+
+            return parts.join(' ');
+        }
+
+        // Test schedule: Saturday at 23:05
+        const testSchedule = {
+            name: "Daily Weather",
+            schedule_type: "weekly",
+            day_of_week: 6,  // Saturday
+            hour: 23,
+            minute: 5,
+            enabled: true
+        };
+
+        const nextExec = calculateNextExecution(testSchedule);
+        const countdown = formatCountdown(nextExec);
+
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <p><strong>Current Time:</strong> ${new Date().toString()}</p>
+            <p><strong>Schedule:</strong> ${testSchedule.name}</p>
+            <p><strong>Type:</strong> ${testSchedule.schedule_type}</p>
+            <p><strong>Day of Week:</strong> ${testSchedule.day_of_week} (Saturday)</p>
+            <p><strong>Time:</strong> ${testSchedule.hour}:${String(testSchedule.minute).padStart(2, '0')}</p>
+            <p><strong>Next Execution:</strong> ${nextExec ? nextExec.toString() : 'N/A'}</p>
+            <p><strong>Countdown:</strong> ${countdown}</p>
+        `;
+    </script>
+</body>
+</html>

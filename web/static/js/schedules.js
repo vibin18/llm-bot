@@ -45,7 +45,8 @@ function calculateNextExecution(schedule) {
     const now = getServerTime(); // Use server time instead of browser time
     let nextExec = null;
 
-    if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null) {
+    // Handle weekly schedules - be explicit about checking for 0 (Sunday)
+    if (schedule.schedule_type === 'weekly' && (schedule.day_of_week === 0 || schedule.day_of_week)) {
         // Calculate next occurrence of this day/time
         nextExec = new Date(now);
         const currentDay = now.getDay();
@@ -63,6 +64,8 @@ function calculateNextExecution(schedule) {
         }
 
         nextExec.setDate(now.getDate() + daysUntil);
+
+        console.log('Weekly schedule:', schedule.name, 'Current day:', currentDay, 'Target day:', targetDay, 'Days until:', daysUntil, 'Next exec:', nextExec);
     } else if (schedule.schedule_type === 'yearly' && schedule.month && schedule.day_of_month) {
         // Calculate next occurrence of this date/time
         nextExec = new Date(now.getFullYear(), schedule.month - 1, schedule.day_of_month, schedule.hour, schedule.minute, 0, 0);
@@ -71,10 +74,16 @@ function calculateNextExecution(schedule) {
         if (now >= nextExec) {
             nextExec.setFullYear(now.getFullYear() + 1);
         }
+
+        console.log('Yearly schedule:', schedule.name, 'Next exec:', nextExec);
     } else if (schedule.schedule_type === 'once' && schedule.specific_date) {
         // One-time schedule
         nextExec = new Date(schedule.specific_date);
         nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+
+        console.log('Once schedule:', schedule.name, 'Next exec:', nextExec);
+    } else {
+        console.warn('Schedule type not handled:', schedule.schedule_type, 'Schedule:', schedule);
     }
 
     return nextExec;
@@ -113,15 +122,19 @@ function displaySchedules(schedules) {
         return;
     }
 
+    console.log('Displaying schedules:', schedules.length, 'Server offset:', serverTimeOffset);
+
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     schedules.forEach(schedule => {
+        console.log('Processing schedule:', schedule);
+
         const row = document.createElement('tr');
         const timeStr = `${schedule.hour.toString().padStart(2, '0')}:${schedule.minute.toString().padStart(2, '0')}`;
 
         let dayOrDateStr = '';
-        if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null) {
+        if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null && schedule.day_of_week !== undefined) {
             dayOrDateStr = dayNames[schedule.day_of_week];
         } else if (schedule.schedule_type === 'yearly' && schedule.month && schedule.day_of_month) {
             dayOrDateStr = `${monthNames[schedule.month - 1]} ${schedule.day_of_month}`;
@@ -132,6 +145,8 @@ function displaySchedules(schedules) {
 
         // Calculate countdown
         const nextExec = calculateNextExecution(schedule);
+        console.log('Next execution for', schedule.name, ':', nextExec);
+
         const countdown = schedule.enabled ? formatCountdown(nextExec) : 'Disabled';
         const countdownStyle = countdown === 'Due now!' ? 'color: #d32f2f; font-weight: bold;' : 'font-family: monospace;';
 
