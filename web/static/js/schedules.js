@@ -1,3 +1,33 @@
+// Global variable to store server time offset
+let serverTimeOffset = 0;
+
+// Get server's current time
+function getServerTime() {
+    return new Date(Date.now() + serverTimeOffset);
+}
+
+// Sync with server time
+async function syncServerTime() {
+    try {
+        const response = await fetch('/api/server-time');
+        const serverInfo = await response.json();
+
+        // Calculate offset between server time and browser time
+        const serverTime = new Date(serverInfo.current_time);
+        const browserTime = new Date();
+        serverTimeOffset = serverTime - browserTime;
+
+        console.log('Server timezone:', serverInfo.timezone);
+        console.log('Time offset (ms):', serverTimeOffset);
+        console.log('Server time:', serverInfo.formatted_str);
+
+        return serverInfo;
+    } catch (error) {
+        console.error('Error syncing server time:', error);
+        return null;
+    }
+}
+
 // Load schedules on page load
 async function loadSchedules() {
     try {
@@ -10,13 +40,76 @@ async function loadSchedules() {
     }
 }
 
+// Calculate next execution time for a schedule (using server time)
+function calculateNextExecution(schedule) {
+    const now = getServerTime(); // Use server time instead of browser time
+    let nextExec = null;
+
+    if (schedule.schedule_type === 'weekly' && schedule.day_of_week !== null) {
+        // Calculate next occurrence of this day/time
+        nextExec = new Date(now);
+        const currentDay = now.getDay();
+        const targetDay = schedule.day_of_week;
+
+        // Days until target day (0 if today)
+        let daysUntil = (targetDay - currentDay + 7) % 7;
+
+        // Set the time
+        nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+
+        // If today but time has passed, schedule for next week
+        if (daysUntil === 0 && now >= nextExec) {
+            daysUntil = 7;
+        }
+
+        nextExec.setDate(now.getDate() + daysUntil);
+    } else if (schedule.schedule_type === 'yearly' && schedule.month && schedule.day_of_month) {
+        // Calculate next occurrence of this date/time
+        nextExec = new Date(now.getFullYear(), schedule.month - 1, schedule.day_of_month, schedule.hour, schedule.minute, 0, 0);
+
+        // If date has passed this year, use next year
+        if (now >= nextExec) {
+            nextExec.setFullYear(now.getFullYear() + 1);
+        }
+    } else if (schedule.schedule_type === 'once' && schedule.specific_date) {
+        // One-time schedule
+        nextExec = new Date(schedule.specific_date);
+        nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+    }
+
+    return nextExec;
+}
+
+// Format countdown timer (using server time)
+function formatCountdown(nextExec) {
+    if (!nextExec) return 'N/A';
+
+    const now = getServerTime(); // Use server time instead of browser time
+    const diff = nextExec - now;
+
+    if (diff <= 0) {
+        return 'Due now!';
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0 || days > 0) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+
+    return parts.join(' ');
+}
+
 // Display schedules in the table
 function displaySchedules(schedules) {
     const tbody = document.getElementById('schedules-tbody');
     tbody.innerHTML = '';
 
     if (schedules.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No schedules configured</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No schedules configured</td></tr>';
         return;
     }
 
@@ -37,10 +130,16 @@ function displaySchedules(schedules) {
             dayOrDateStr = date.toLocaleDateString();
         }
 
+        // Calculate countdown
+        const nextExec = calculateNextExecution(schedule);
+        const countdown = schedule.enabled ? formatCountdown(nextExec) : 'Disabled';
+        const countdownStyle = countdown === 'Due now!' ? 'color: #d32f2f; font-weight: bold;' : 'font-family: monospace;';
+
         row.innerHTML = `
             <td>${escapeHtml(schedule.name)}</td>
             <td>${dayOrDateStr}</td>
             <td>${timeStr}</td>
+            <td><span style="${countdownStyle}">${countdown}</span></td>
             <td><span class="status-badge ${schedule.enabled ? 'enabled' : 'disabled'}">
                 ${schedule.enabled ? 'Enabled' : 'Disabled'}
             </span></td>
@@ -249,11 +348,43 @@ function showError(message) {
     alert(message);
 }
 
+// Update server time display (using server time)
+function updateServerTime() {
+    const now = getServerTime(); // Use server time instead of browser time
+    const timeStr = now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    const dateStr = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    document.getElementById('server-time').textContent = `${dateStr} ${timeStr}`;
+}
+
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // First, sync with server time
+    await syncServerTime();
+
+    // Then load schedules and groups
     loadSchedules();
     loadGroups();
 
     // Add event listener for schedule type toggle
     document.getElementById('schedule-type').addEventListener('change', toggleScheduleType);
+
+    // Update server time every second
+    updateServerTime();
+    setInterval(updateServerTime, 1000);
+
+    // Refresh countdown timers every minute
+    setInterval(loadSchedules, 60000);
+
+    // Re-sync server time every 5 minutes to account for drift
+    setInterval(syncServerTime, 5 * 60 * 1000);
 });

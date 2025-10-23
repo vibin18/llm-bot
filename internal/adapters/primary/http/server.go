@@ -57,6 +57,7 @@ func (s *Server) Start(ctx context.Context) error {
 		api.HandleFunc("/schedules/{id}", s.scheduleHandlers.UpdateSchedule).Methods("PUT")
 		api.HandleFunc("/schedules/{id}", s.scheduleHandlers.DeleteSchedule).Methods("DELETE")
 		api.HandleFunc("/schedules/{id}/executions", s.scheduleHandlers.GetScheduleExecutions).Methods("GET")
+		api.HandleFunc("/server-time", s.scheduleHandlers.GetServerTime).Methods("GET")
 	}
 
 	// Static files and admin UI

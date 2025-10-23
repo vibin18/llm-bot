@@ -310,3 +310,30 @@ func (s *SchedulerService) GetAllSchedules(ctx context.Context) ([]*domain.Sched
 func (s *SchedulerService) GetScheduleExecutions(ctx context.Context, scheduleID string, limit int) ([]*domain.ScheduleExecution, error) {
 	return s.repository.GetExecutions(ctx, scheduleID, limit)
 }
+
+// ServerTimeInfo contains server time information
+type ServerTimeInfo struct {
+	CurrentTime  time.Time `json:"current_time"`
+	TimeZone     string    `json:"timezone"`
+	UnixTime     int64     `json:"unix_time"`
+	DayOfWeek    int       `json:"day_of_week"`
+	Hour         int       `json:"hour"`
+	Minute       int       `json:"minute"`
+	FormattedStr string    `json:"formatted_str"`
+}
+
+// GetServerTime returns the server's current time and timezone info
+func (s *SchedulerService) GetServerTime() *ServerTimeInfo {
+	now := time.Now()
+	zone, _ := now.Zone()
+
+	return &ServerTimeInfo{
+		CurrentTime:  now,
+		TimeZone:     zone,
+		UnixTime:     now.Unix(),
+		DayOfWeek:    int(now.Weekday()),
+		Hour:         now.Hour(),
+		Minute:       now.Minute(),
+		FormattedStr: now.Format("2006-01-02 15:04:05 MST"),
+	}
+}

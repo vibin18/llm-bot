@@ -114,3 +114,11 @@ func (h *ScheduleHandlers) GetScheduleExecutions(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(executions)
 }
+
+// GetServerTime returns the server's current time and timezone info
+func (h *ScheduleHandlers) GetServerTime(w http.ResponseWriter, r *http.Request) {
+	serverTime := h.scheduler.GetServerTime()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(serverTime)
+}
