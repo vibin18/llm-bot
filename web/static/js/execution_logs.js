@@ -31,7 +31,7 @@ async function loadExecutionLogs() {
             new Date(b.executed_at) - new Date(a.executed_at)
         );
 
-        updateStats();
+        // updateStats(); // Stats section not in new template
         displayExecutions(allExecutions);
     } catch (error) {
         console.error('Error loading execution logs:', error);
@@ -136,9 +136,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function showError(message) {
-    alert(message);
-}
+// Note: showError is now provided by dialog.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

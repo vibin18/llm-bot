@@ -29,6 +29,11 @@ func (h *ScheduleHandlers) GetSchedules(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Ensure we return an empty array instead of null
+	if schedules == nil {
+		schedules = make([]*domain.Schedule, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(schedules)
 }
@@ -109,6 +114,11 @@ func (h *ScheduleHandlers) GetScheduleExecutions(w http.ResponseWriter, r *http.
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Ensure we return an empty array instead of null
+	if executions == nil {
+		executions = make([]*domain.ScheduleExecution, 0)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

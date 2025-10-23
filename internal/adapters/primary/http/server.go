@@ -95,27 +95,27 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // serveAdminUI serves the admin UI page
 func (s *Server) serveAdminUI(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/templates/admin.html")
+	http.ServeFile(w, r, "web/templates/admin_new.html")
 }
 
 // serveSchedulesUI serves the schedules UI page
 func (s *Server) serveSchedulesUI(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/templates/schedules.html")
+	http.ServeFile(w, r, "web/templates/schedules_new.html")
 }
 
 // serveExecutionLogsUI serves the execution logs UI page
 func (s *Server) serveExecutionLogsUI(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/templates/execution_logs.html")
+	http.ServeFile(w, r, "web/templates/execution_logs_new.html")
 }
 
 // serveGroupsUI serves the groups management UI page
 func (s *Server) serveGroupsUI(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/templates/groups.html")
+	http.ServeFile(w, r, "web/templates/groups_new.html")
 }
 
 // serveWebhooksUI serves the webhooks management UI page
 func (s *Server) serveWebhooksUI(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "web/templates/webhooks.html")
+	http.ServeFile(w, r, "web/templates/webhooks_new.html")
 }
 
 // corsMiddleware adds CORS headers

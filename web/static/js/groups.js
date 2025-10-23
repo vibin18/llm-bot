@@ -95,7 +95,17 @@ async function addToAllowed(jid) {
 
 // Remove group from allowed list
 async function removeFromAllowed(jid) {
-    if (!confirm('Are you sure you want to remove this group from the allowed list?')) return;
+    const confirmed = await showConfirm(
+        'Are you sure you want to remove this group from the allowed list?',
+        'Remove Group',
+        {
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            danger: true
+        }
+    );
+
+    if (!confirmed) return;
 
     try {
         const updatedList = allowedGroups.filter(g => g !== jid);
@@ -124,13 +134,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function showSuccess(message) {
-    alert(message);
-}
-
-function showError(message) {
-    alert(message);
-}
+// Note: showSuccess and showError are now provided by dialog.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp LLM Bot - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/modern-nav.css">
+</head>
+<body>
+    <!-- Modern Navigation Bar -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🤖</div>
+                <span class="logo-text">WhatsApp Bot</span>
+            </a>
+
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="nav-link active">Dashboard</a></li>
+                <li><a href="/schedules" class="nav-link">Schedules</a></li>
+                <li><a href="/execution-logs" class="nav-link">Execution Logs</a></li>
+                <li><a href="/groups" class="nav-link">Groups</a></li>
+                <li><a href="/webhooks" class="nav-link">Webhooks</a></li>
+            </ul>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">LLM Chatbot - N8N - WhatsApp</h1>
+                <p class="hero-subtitle">
+                    Conversational AI must be grounded in reality. 
+                    We co-create intelligent assistants with teams who know their workflows, 
+                    delivering automation that works in the real world, not just demos.
+                </p>
+            </div>
+        </section>
+
+        <!-- System Status -->
+        <h2 class="section-heading">System Status</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">WhatsApp Connection</div>
+                <span id="wa-status" class="stat-badge disconnected">Checking...</span>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Schedules</div>
+                <div class="stat-value" id="active-schedules">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Executions</div>
+                <div class="stat-value" id="total-executions">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value" id="success-rate">-</div>
+            </div>
+        </div>
+
+        <!-- QR Code Section -->
+        <div id="qr-container" class="stat-card" style="display: none; text-align: center; padding: 40px;">
+            <h3 style="margin-bottom: 20px; font-size: 1.5rem;">Scan QR Code to Connect WhatsApp</h3>
+            <img id="qr-code" src="" alt="QR Code" style="max-width: 300px; border-radius: 12px;">
+        </div>
+
+        <!-- Feature Cards -->
+        <h2 class="section-heading">Quick Access</h2>
+        <div class="feature-cards">
+            <a href="/schedules" class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3 class="feature-title">Schedules</h3>
+                <p class="feature-description">
+                    Create and manage scheduled webhook triggers. Set up weekly, yearly, or one-time automated messages.
+                </p>
+            </a>
+
+            <a href="/execution-logs" class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">Execution Logs</h3>
+                <p class="feature-description">
+                    View detailed execution history, success rates, and error messages for all scheduled tasks.
+                </p>
+            </a>
+
+            <a href="/groups" class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3 class="feature-title">WhatsApp Groups</h3>
+                <p class="feature-description">
+                    Manage allowed WhatsApp groups and configure which groups the bot can interact with.
+                </p>
+            </a>
+
+            <a href="/webhooks" class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3 class="feature-title">Webhooks</h3>
+                <p class="feature-description">
+                    Configure webhook endpoints and sub-trigger words for dynamic message responses.
+                </p>
+            </a>
+        </div>
+    </div>
+
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/modern-nav.js"></script>
+    <script src="/static/js/dashboard.js?v=5"></script>
+</body>
+</html>

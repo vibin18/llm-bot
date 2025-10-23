@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groups - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/modern-nav.css">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--text-light);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .group-name {
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .group-jid {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .btn-primary, .btn-danger {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(72, 187, 120, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(229, 62, 62, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-add, .btn-remove {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-add:hover {
+            background: rgba(72, 187, 120, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-remove {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-remove:hover {
+            background: rgba(229, 62, 62, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .status-badge.allowed {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .status-badge.not-allowed {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .stat-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .stat-badge.connected {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .stat-badge.disconnected {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Navigation Bar -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🤖</div>
+                <span class="logo-text">WhatsApp Bot</span>
+            </a>
+
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="nav-link">Dashboard</a></li>
+                <li><a href="/schedules" class="nav-link">Schedules</a></li>
+                <li><a href="/execution-logs" class="nav-link">Execution Logs</a></li>
+                <li><a href="/groups" class="nav-link active">Groups</a></li>
+                <li><a href="/webhooks" class="nav-link">Webhooks</a></li>
+            </ul>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">👥 WhatsApp Groups</h1>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="stat-card" style="margin-bottom: 30px; text-align: center;">
+            <div class="stat-label">WhatsApp Connection Status</div>
+            <span id="connection-status" class="stat-badge disconnected">Checking...</span>
+        </div>
+
+        <!-- QR Code Section -->
+        <div id="qr-container" class="stat-card" style="display: none; text-align: center; padding: 40px; margin-bottom: 30px;">
+            <h3 style="margin-bottom: 20px; font-size: 1.5rem; color: var(--text-light);">Scan QR Code to Connect WhatsApp</h3>
+            <img id="qr-code" src="" alt="QR Code" style="max-width: 300px; border-radius: 12px;">
+        </div>
+
+        <!-- Groups Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Group Name</th>
+                        <th>Group ID</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="groups-tbody">
+                    <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/modern-nav.js"></script>
+    <script src="/static/js/groups.js"></script>
+</body>
+</html>

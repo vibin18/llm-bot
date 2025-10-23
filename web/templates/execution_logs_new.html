@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execution Logs - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/modern-nav.css">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .filter-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .filter-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .filter-section select {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter-section select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--text-light);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-badge.success {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .status-badge.failure,
+        .status-badge.failed {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .error-details,
+        .error-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #e53e3e;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .response-preview,
+        .response-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Navigation Bar -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🤖</div>
+                <span class="logo-text">WhatsApp Bot</span>
+            </a>
+
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="nav-link">Dashboard</a></li>
+                <li><a href="/schedules" class="nav-link">Schedules</a></li>
+                <li><a href="/execution-logs" class="nav-link active">Execution Logs</a></li>
+                <li><a href="/groups" class="nav-link">Groups</a></li>
+                <li><a href="/webhooks" class="nav-link">Webhooks</a></li>
+            </ul>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">📊 Execution Logs</h1>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="schedule-filter">Filter by Schedule</label>
+                    <select id="schedule-filter">
+                        <option value="">All Schedules</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status-filter">Filter by Status</label>
+                    <select id="status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="success">Success Only</option>
+                        <option value="failed">Failed Only</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Schedule</th>
+                        <th>Executed At</th>
+                        <th>Status</th>
+                        <th>Response</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-tbody">
+                    <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/modern-nav.js"></script>
+    <script src="/static/js/execution_logs.js"></script>
+</body>
+</html>

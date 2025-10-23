@@ -22,25 +22,29 @@ async function loadDashboardStats() {
 
         // Load schedules count
         const schedulesResponse = await fetch('/api/schedules');
-        const schedules = await schedulesResponse.json();
-        const activeSchedules = schedules.filter(s => s.enabled).length;
+        const schedulesData = await schedulesResponse.json();
+        const schedules = Array.isArray(schedulesData) ? schedulesData : [];
+        const activeSchedules = schedules.filter(s => s && s.enabled).length;
         document.getElementById('active-schedules').textContent = activeSchedules;
 
         // Load execution stats
         let totalExecutions = 0;
         let successfulExecutions = 0;
 
-        const promises = schedules.map(schedule =>
-            fetch(`/api/schedules/${schedule.id}/executions?limit=100`)
-                .then(res => res.json())
-                .catch(() => [])
-        );
+        if (schedules.length > 0) {
+            const promises = schedules.map(schedule =>
+                fetch(`/api/schedules/${schedule.id}/executions?limit=100`)
+                    .then(res => res.json())
+                    .then(data => Array.isArray(data) ? data : [])
+                    .catch(() => [])
+            );
 
-        const results = await Promise.all(promises);
-        const allExecutions = results.flat();
+            const results = await Promise.all(promises);
+            const allExecutions = results.flat();
 
-        totalExecutions = allExecutions.length;
-        successfulExecutions = allExecutions.filter(e => e.success).length;
+            totalExecutions = allExecutions.length;
+            successfulExecutions = allExecutions.filter(e => e && e.success).length;
+        }
 
         document.getElementById('total-executions').textContent = totalExecutions;
 

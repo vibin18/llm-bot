@@ -297,3 +297,145 @@ button:disabled {
 #add-webhook-btn:hover {
     background: #5568d3;
 }
+
+/* Custom Dialog Styles */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    animation: fadeIn 0.2s ease forwards;
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+.dialog-box {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    transform: scale(0.9);
+    animation: scaleIn 0.2s ease forwards;
+}
+
+@keyframes scaleIn {
+    to { transform: scale(1); }
+}
+
+.dialog-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dialog-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.dialog-icon.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.dialog-icon.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.dialog-icon.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.dialog-icon.info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.dialog-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.dialog-content {
+    padding: 24px;
+    color: #555;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.dialog-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.dialog-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dialog-btn.primary {
+    background: #667eea;
+    color: white;
+}
+
+.dialog-btn.primary:hover {
+    background: #5568d3;
+}
+
+.dialog-btn.secondary {
+    background: #e9ecef;
+    color: #333;
+}
+
+.dialog-btn.secondary:hover {
+    background: #dee2e6;
+}
+
+.dialog-btn.danger {
+    background: #e53e3e;
+    color: white;
+}
+
+.dialog-btn.danger:hover {
+    background: #c53030;
+}
+
+.dialog-btn.success {
+    background: #48bb78;
+    color: white;
+}
+
+.dialog-btn.success:hover {
+    background: #38a169;
+}

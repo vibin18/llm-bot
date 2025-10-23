@@ -79,7 +79,17 @@ async function saveWebhook(event) {
 
 // Delete webhook
 async function deleteWebhook(webhookUrl, subTrigger) {
-    if (!confirm('Are you sure you want to delete this webhook?')) return;
+    const confirmed = await showConfirm(
+        'Are you sure you want to delete this webhook? This action cannot be undone.',
+        'Delete Webhook',
+        {
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            danger: true
+        }
+    );
+
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/webhooks?sub_trigger=${encodeURIComponent(subTrigger)}`, {
@@ -104,13 +114,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function showSuccess(message) {
-    alert(message);
-}
-
-function showError(message) {
-    alert(message);
-}
+// Note: showSuccess and showError are now provided by dialog.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

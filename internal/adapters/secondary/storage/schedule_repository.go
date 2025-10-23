@@ -369,8 +369,21 @@ func (r *ScheduleRepository) scanSchedules(rows *sql.Rows) ([]*domain.Schedule, 
 		}
 
 		if specificDate.Valid {
-			parsed, err := time.Parse("2006-01-02", specificDate.String)
-			if err == nil {
+			// Try multiple date formats
+			var parsed time.Time
+			var err error
+
+			// Try with timestamp first (2025-10-23T00:00:00Z)
+			parsed, err = time.Parse(time.RFC3339, specificDate.String)
+			if err != nil {
+				// Try date-only format (2025-10-23)
+				parsed, err = time.Parse("2006-01-02", specificDate.String)
+			}
+
+			if err != nil {
+				// Log parsing error but continue
+				fmt.Printf("WARNING: Failed to parse specific_date '%s' for schedule %s: %v\n", specificDate.String, schedule.Name, err)
+			} else {
 				schedule.SpecificDate = &parsed
 			}
 		}

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedules - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/modern-nav.css">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .server-time-box {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .server-time-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .server-time-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--text-light);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-badge.enabled {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .status-badge.disabled {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 4px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-edit:hover {
+            background: rgba(72, 187, 120, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-delete:hover {
+            background: rgba(229, 62, 62, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .schedule-form {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Navigation Bar -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🤖</div>
+                <span class="logo-text">WhatsApp Bot</span>
+            </a>
+
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="nav-link">Dashboard</a></li>
+                <li><a href="/schedules" class="nav-link active">Schedules</a></li>
+                <li><a href="/execution-logs" class="nav-link">Execution Logs</a></li>
+                <li><a href="/groups" class="nav-link">Groups</a></li>
+                <li><a href="/webhooks" class="nav-link">Webhooks</a></li>
+            </ul>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">📅 Schedules</h1>
+            <button class="btn-primary" onclick="showAddScheduleForm()">➕ Add Schedule</button>
+        </div>
+
+        <!-- Schedule Form -->
+        <div id="schedule-form" class="schedule-form">
+            <h2 id="form-title" style="margin-bottom: 24px; color: var(--text-light);">Add New Schedule</h2>
+            <form id="schedule-form-element" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="schedule-id">
+
+                <div class="form-group">
+                    <label for="schedule-name">Schedule Name*</label>
+                    <input type="text" id="schedule-name" placeholder="e.g., Daily Report" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-group">WhatsApp Group*</label>
+                    <select id="schedule-group" required>
+                        <option value="">Select a group...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-webhook">Webhook URL*</label>
+                    <input type="url" id="schedule-webhook" placeholder="https://..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-type">Schedule Type*</label>
+                    <select id="schedule-type" onchange="toggleScheduleType()" required>
+                        <option value="weekly">Weekly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="once">Once</option>
+                    </select>
+                </div>
+
+                <!-- Weekly Options -->
+                <div id="weekly-options" class="form-group">
+                    <label for="schedule-day">Day of Week*</label>
+                    <select id="schedule-day">
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+
+                <!-- Yearly Options -->
+                <div id="yearly-options" style="display: none;">
+                    <div class="form-group">
+                        <label for="schedule-month">Month*</label>
+                        <select id="schedule-month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div id="yearly-day-options" class="form-group">
+                        <label for="schedule-day-of-month">Day of Month (1-31)*</label>
+                        <input type="number" id="schedule-day-of-month" min="1" max="31" placeholder="15">
+                    </div>
+                </div>
+
+                <!-- Once Options -->
+                <div id="once-options" class="form-group" style="display: none;">
+                    <label for="schedule-date">Date*</label>
+                    <input type="date" id="schedule-date">
+                </div>
+
+                <!-- Time -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="schedule-hour">Hour (0-23)*</label>
+                        <input type="number" id="schedule-hour" min="0" max="23" placeholder="14" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-minute">Minute (0-59)*</label>
+                        <input type="number" id="schedule-minute" min="0" max="59" placeholder="30" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="schedule-enabled" checked>
+                        <span>Enabled</span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Save</button>
+                    <button type="button" onclick="hideScheduleForm()" class="btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Server Time -->
+        <div class="server-time-box">
+            <div class="server-time-label">Server Time</div>
+            <div class="server-time-value" id="server-time">--:--:--</div>
+        </div>
+
+        <!-- Schedules Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Day/Date</th>
+                        <th>Time</th>
+                        <th>Countdown</th>
+                        <th>Status</th>
+                        <th>Last Run</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="schedules-tbody">
+                    <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/modern-nav.js"></script>
+    <script src="/static/js/schedules.js"></script>
+</body>
+</html>

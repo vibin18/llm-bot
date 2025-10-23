@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhooks - WhatsApp LLM Bot</title>
+    <link rel="stylesheet" href="/static/css/modern-nav.css">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .webhook-form {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--text-light);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .webhook-url {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .btn-delete {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete:hover {
+            background: rgba(229, 62, 62, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Navigation Bar -->
+    <nav class="modern-nav" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🤖</div>
+                <span class="logo-text">WhatsApp Bot</span>
+            </a>
+
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="nav-link">Dashboard</a></li>
+                <li><a href="/schedules" class="nav-link">Schedules</a></li>
+                <li><a href="/execution-logs" class="nav-link">Execution Logs</a></li>
+                <li><a href="/groups" class="nav-link">Groups</a></li>
+                <li><a href="/webhooks" class="nav-link active">Webhooks</a></li>
+            </ul>
+
+            <div class="mobile-toggle" id="mobileToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">🔗 Webhooks</h1>
+            <button class="btn-primary" onclick="showAddWebhookForm()">➕ Add Webhook</button>
+        </div>
+
+        <!-- Webhook Form -->
+        <div id="webhook-form" class="webhook-form">
+            <h2 style="margin-bottom: 24px; color: var(--text-light);">Add New Webhook</h2>
+            <form id="webhook-form-element" onsubmit="saveWebhook(event)">
+                <div class="form-group">
+                    <label for="webhook-url">Webhook URL*</label>
+                    <input type="url" id="webhook-url" placeholder="https://..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sub-trigger">Sub-Trigger Word*</label>
+                    <input type="text" id="sub-trigger" placeholder="e.g., weather" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Save</button>
+                    <button type="button" onclick="hideWebhookForm()" class="btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Webhooks Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Webhook URL</th>
+                        <th>Sub-Trigger</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="webhooks-tbody">
+                    <tr><td colspan="3" style="text-align: center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/js/dialog.js"></script>
+    <script src="/static/js/modern-nav.js"></script>
+    <script src="/static/js/webhooks.js"></script>
+</body>
+</html>

@@ -225,7 +225,7 @@ async function addWebhook() {
     const timeout = document.getElementById('webhook-timeout').value.trim();
 
     if (!subTrigger || !url || !timeout) {
-        alert('Please fill in all fields');
+        await showWarning('Please fill in all fields', 'Missing Information');
         return;
     }
 
@@ -259,7 +259,17 @@ async function addWebhook() {
 
 // Delete webhook
 async function deleteWebhook(subTrigger) {
-    if (!confirm(`Delete webhook for "${subTrigger}"?`)) {
+    const confirmed = await showConfirm(
+        `Are you sure you want to delete the webhook for "${subTrigger}"?`,
+        'Delete Webhook',
+        {
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            danger: true
+        }
+    );
+
+    if (!confirmed) {
         return;
     }
 

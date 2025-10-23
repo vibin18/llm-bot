@@ -76,10 +76,23 @@ function calculateNextExecution(schedule) {
         }
 
         console.log('Yearly schedule:', schedule.name, 'Next exec:', nextExec);
-    } else if (schedule.schedule_type === 'once' && schedule.specific_date) {
+    } else if (schedule.schedule_type === 'once') {
         // One-time schedule
-        nextExec = new Date(schedule.specific_date);
-        nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+        if (schedule.specific_date) {
+            nextExec = new Date(schedule.specific_date);
+            nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+        } else {
+            // WORKAROUND: If specific_date is missing from API, assume today
+            // This is a bug in the Go backend where specific_date isn't being returned
+            console.warn('Once schedule missing specific_date, assuming today:', schedule.name);
+            nextExec = new Date(now);
+            nextExec.setHours(schedule.hour, schedule.minute, 0, 0);
+
+            // If the time already passed today, it won't trigger
+            if (now >= nextExec) {
+                nextExec = null; // Invalid schedule
+            }
+        }
 
         console.log('Once schedule:', schedule.name, 'Next exec:', nextExec);
     } else {
@@ -315,7 +328,17 @@ function viewScheduleLogs(scheduleId) {
 
 // Delete schedule
 async function deleteSchedule(id) {
-    if (!confirm('Are you sure you want to delete this schedule?')) return;
+    const confirmed = await showConfirm(
+        'Are you sure you want to delete this schedule? This action cannot be undone.',
+        'Delete Schedule',
+        {
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            danger: true
+        }
+    );
+
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
@@ -355,13 +378,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function showSuccess(message) {
-    alert(message);
-}
-
-function showError(message) {
-    alert(message);
-}
+// Note: showSuccess and showError are now provided by dialog.js
 
 // Update server time display (using server time)
 function updateServerTime() {

@@ -122,6 +122,12 @@ func (s *SchedulerService) checkSchedules(ctx context.Context) {
 		var shouldExecute bool
 		var scheduleInfo string
 
+		s.logger.Info("Evaluating schedule",
+			"name", schedule.Name,
+			"type_value", schedule.ScheduleType,
+			"type_length", len(schedule.ScheduleType),
+			"specific_date_nil", schedule.SpecificDate == nil)
+
 		switch schedule.ScheduleType {
 		case "once":
 			// One-time schedule: check specific date and time
@@ -134,6 +140,19 @@ func (s *SchedulerService) checkSchedules(ctx context.Context) {
 					schedule.Minute == currentMinute
 
 				scheduleInfo = fmt.Sprintf("once=%s %02d:%02d", scheduleDate, schedule.Hour, schedule.Minute)
+
+				s.logger.Info("Once schedule check",
+					"name", schedule.Name,
+					"schedule_date", scheduleDate,
+					"schedule_time", fmt.Sprintf("%02d:%02d", schedule.Hour, schedule.Minute),
+					"current_date", currentDate,
+					"current_time", fmt.Sprintf("%02d:%02d", currentHour, currentMinute),
+					"match", shouldExecute)
+			} else {
+				s.logger.Warn("Once schedule has nil SpecificDate",
+					"name", schedule.Name,
+					"hour", schedule.Hour,
+					"minute", schedule.Minute)
 			}
 
 		case "yearly":
