@@ -26,8 +26,11 @@ type WhatsAppClient interface {
 	SendReply(ctx context.Context, groupJID, message, replyToMessageID, quotedSender string) error
 	SendImage(ctx context.Context, groupJID string, imageData []byte, mimeType, caption, replyToMessageID, quotedSender string) error
 	GetGroups(ctx context.Context) ([]*Group, error)
+	GetGroupParticipants(ctx context.Context, groupJID string) ([]*GroupParticipant, error)
 	GetAuthStatus(ctx context.Context) (*AuthStatus, error)
 	OnMessage(handler func(*Message))
+	OnPresence(handler func(*PresenceEvent))
+	SubscribeToPresence(jid string) error
 }
 
 // ConfigStore defines the interface for configuration management

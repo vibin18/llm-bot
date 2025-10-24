@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/skip2/go-qrcode"
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
@@ -22,15 +23,19 @@ import (
 
 // Client implements WhatsAppClient interface
 type Client struct {
-	client          *whatsmeow.Client
-	sessionPath     string
-	allowedGroups   map[string]bool
-	messageHandlers []func(*domain.Message)
-	mu              sync.RWMutex
-	qrChan          chan string
-	logger          waLog.Logger
-	botLIDCache     map[string]string // groupJID -> botLID mapping
-	cacheMu         sync.RWMutex
+	client            *whatsmeow.Client
+	sessionPath       string
+	allowedGroups     map[string]bool
+	messageHandlers   []func(*domain.Message)
+	presenceHandlers  []func(*domain.PresenceEvent)
+	mu                sync.RWMutex
+	qrChan            chan string
+	logger            waLog.Logger
+	botLIDCache       map[string]string // groupJID -> botLID mapping
+	cacheMu           sync.RWMutex
+	presenceEnabled   bool
+	subscribedContacts map[string]bool
+	subscribeMu       sync.RWMutex
 }
 
 // NewClient creates a new WhatsApp client
@@ -41,11 +46,13 @@ func NewClient(sessionPath string, allowedGroups []string, logger waLog.Logger) 
 	}
 
 	return &Client{
-		sessionPath:   sessionPath,
-		allowedGroups: allowed,
-		qrChan:        make(chan string, 1),
-		logger:        logger,
-		botLIDCache:   make(map[string]string),
+		sessionPath:        sessionPath,
+		allowedGroups:      allowed,
+		qrChan:             make(chan string, 1),
+		logger:             logger,
+		botLIDCache:        make(map[string]string),
+		presenceEnabled:    false,
+		subscribedContacts: make(map[string]bool),
 	}, nil
 }
 
@@ -296,6 +303,46 @@ func (c *Client) GetGroups(ctx context.Context) ([]*domain.Group, error) {
 	return result, nil
 }
 
+// GetGroupParticipants returns participants for a specific group
+func (c *Client) GetGroupParticipants(ctx context.Context, groupJID string) ([]*domain.GroupParticipant, error) {
+	if c.client == nil {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	if !c.client.IsConnected() {
+		return nil, fmt.Errorf("client not connected")
+	}
+
+	// Parse the group JID
+	jid, err := types.ParseJID(groupJID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group JID: %w", err)
+	}
+
+	// Get group info which includes participants
+	groupInfo, err := c.client.GetGroupInfo(jid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group info: %w", err)
+	}
+
+	// Convert participants to our domain model
+	result := make([]*domain.GroupParticipant, 0, len(groupInfo.Participants))
+	for _, participant := range groupInfo.Participants {
+		name := participant.DisplayName
+		if name == "" {
+			// Use JID user part as fallback
+			name = participant.JID.User
+		}
+
+		result = append(result, &domain.GroupParticipant{
+			JID:  participant.JID.String(),
+			Name: name,
+		})
+	}
+
+	return result, nil
+}
+
 // GetAuthStatus returns the current authentication status
 func (c *Client) GetAuthStatus(ctx context.Context) (*domain.AuthStatus, error) {
 	status := &domain.AuthStatus{
@@ -324,6 +371,80 @@ func (c *Client) OnMessage(handler func(*domain.Message)) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.messageHandlers = append(c.messageHandlers, handler)
+}
+
+// OnPresence registers a presence event handler
+func (c *Client) OnPresence(handler func(*domain.PresenceEvent)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.presenceHandlers = append(c.presenceHandlers, handler)
+}
+
+// EnablePresenceTracking enables presence tracking for all contacts
+func (c *Client) EnablePresenceTracking() {
+	c.mu.Lock()
+	c.presenceEnabled = true
+	c.mu.Unlock()
+	c.logger.Infof("Presence tracking enabled")
+}
+
+// SubscribeToPresence subscribes to presence updates for a specific contact
+func (c *Client) SubscribeToPresence(jid string) error {
+	if c.client == nil || !c.client.IsConnected() {
+		return fmt.Errorf("client not connected")
+	}
+
+	contactJID, err := types.ParseJID(jid)
+	if err != nil {
+		return fmt.Errorf("invalid JID: %w", err)
+	}
+
+	c.subscribeMu.Lock()
+	// Check if already subscribed
+	if c.subscribedContacts[jid] {
+		c.subscribeMu.Unlock()
+		return nil
+	}
+	c.subscribedContacts[jid] = true
+	c.subscribeMu.Unlock()
+
+	// Subscribe to presence
+	err = c.client.SubscribePresence(contactJID)
+	if err != nil {
+		c.logger.Warnf("Failed to subscribe to presence for %s: %v", jid, err)
+		return err
+	}
+
+	c.logger.Infof("Subscribed to presence for %s", jid)
+	return nil
+}
+
+// SubscribeToGroupParticipants subscribes to presence for all participants in a group
+func (c *Client) SubscribeToGroupParticipants(groupJID string) error {
+	if c.client == nil || !c.client.IsConnected() {
+		return fmt.Errorf("client not connected")
+	}
+
+	jid, err := types.ParseJID(groupJID)
+	if err != nil {
+		return fmt.Errorf("invalid group JID: %w", err)
+	}
+
+	// Get group info to fetch participants
+	groupInfo, err := c.client.GetGroupInfo(jid)
+	if err != nil {
+		return fmt.Errorf("failed to get group info: %w", err)
+	}
+
+	subscribed := 0
+	for _, participant := range groupInfo.Participants {
+		if err := c.SubscribeToPresence(participant.JID.String()); err == nil {
+			subscribed++
+		}
+	}
+
+	c.logger.Infof("Subscribed to %d/%d participants in group %s", subscribed, len(groupInfo.Participants), groupJID)
+	return nil
 }
 
 // eventHandler handles WhatsApp events
@@ -425,6 +546,44 @@ func (c *Client) eventHandler(evt interface{}) {
 
 	case *events.Disconnected:
 		c.logger.Infof("Disconnected from WhatsApp")
+
+	case *events.Presence:
+		// Handle presence updates
+		if c.presenceEnabled {
+			c.handlePresence(v)
+		}
+	}
+}
+
+// handlePresence processes presence events
+func (c *Client) handlePresence(evt *events.Presence) {
+	// Determine if contact is online based on Unavailable field
+	// Unavailable=false means the user is available/online
+	isOnline := !evt.Unavailable
+
+	presenceEvent := &domain.PresenceEvent{
+		JID:       evt.From.String(),
+		IsOnline:  isOnline,
+		Timestamp: evt.LastSeen,
+	}
+
+	// If no LastSeen, use current time
+	if presenceEvent.Timestamp.IsZero() {
+		presenceEvent.Timestamp = time.Now()
+	}
+
+	c.logger.Debugf("Presence update: %s is %s (last seen: %s)",
+		evt.From.String(),
+		map[bool]string{true: "online", false: "offline"}[isOnline],
+		presenceEvent.Timestamp.Format(time.RFC3339))
+
+	// Call all registered presence handlers
+	c.mu.RLock()
+	handlers := c.presenceHandlers
+	c.mu.RUnlock()
+
+	for _, handler := range handlers {
+		go handler(presenceEvent)
 	}
 }
 

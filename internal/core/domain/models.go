@@ -21,6 +21,12 @@ type Group struct {
 	Participants int    `json:"participants"`
 }
 
+// GroupParticipant represents a WhatsApp group participant
+type GroupParticipant struct {
+	JID  string `json:"jid"`
+	Name string `json:"name"`
+}
+
 // Config represents application configuration
 type Config struct {
 	App      AppConfig      `yaml:"app"`
@@ -119,4 +125,20 @@ type AuthStatus struct {
 	IsAuthenticated bool   `json:"is_authenticated"`
 	QRCode          string `json:"qr_code"`
 	Error           error  `json:"error"`
+}
+
+// ContactPresence represents a contact's presence status
+type ContactPresence struct {
+	JID            string    `json:"jid"`              // WhatsApp JID
+	Name           string    `json:"name,omitempty"`   // Contact name
+	IsOnline       bool      `json:"is_online"`        // Current online status
+	LastSeen       time.Time `json:"last_seen"`        // Last seen timestamp
+	LastStatusChange time.Time `json:"last_status_change"` // When status last changed
+}
+
+// PresenceEvent represents a presence update event
+type PresenceEvent struct {
+	JID       string    `json:"jid"`
+	IsOnline  bool      `json:"is_online"`
+	Timestamp time.Time `json:"timestamp"`
 }

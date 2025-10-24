@@ -53,6 +53,28 @@ func (h *Handlers) GetGroups(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(groups)
 }
 
+// GetGroupParticipants returns participants for a specific group
+func (h *Handlers) GetGroupParticipants(w http.ResponseWriter, r *http.Request) {
+	groupJID := r.URL.Query().Get("jid")
+	if groupJID == "" {
+		http.Error(w, "jid query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	participants, err := h.whatsapp.GetGroupParticipants(r.Context(), groupJID)
+	if err != nil {
+		h.logger.Error("Failed to get group participants", "error", err, "jid", groupJID)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"jid":          groupJID,
+		"participants": participants,
+	})
+}
+
 // GetAllowedGroups returns currently allowed groups
 func (h *Handlers) GetAllowedGroups(w http.ResponseWriter, r *http.Request) {
 	groups := h.groupMgr.GetAllowedGroups()

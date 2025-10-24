@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presence Tracking - WhatsApp Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #b0b0b0;
+            font-size: 1.1em;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-label {
+            color: #b0b0b0;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls-section h2 {
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .group-select {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .group-select:focus {
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .search-box:focus {
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .contacts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .contact-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .contact-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .contact-card.tracking {
+            border-color: #10b981;
+        }
+
+        .contact-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6b7280;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.online {
+            background: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-indicator.offline {
+            background: #ef4444;
+        }
+
+        .contact-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #e0e0e0;
+            word-break: break-word;
+        }
+
+        .contact-jid {
+            font-size: 0.85em;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .contact-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-text {
+            font-size: 0.9em;
+            color: #9ca3af;
+        }
+
+        .last-seen {
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+
+        .tracking-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 32px;
+            height: 32px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 50%;
+            color: #ef4444;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .remove-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #ef4444;
+            transform: scale(1.1);
+        }
+
+        .checkbox-wrapper {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 24px;
+            height: 24px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .notification.error {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .selected-count {
+            color: #667eea;
+            font-weight: 600;
+            margin-right: auto;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contacts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-row {
+                flex-direction: column;
+            }
+
+            .group-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Presence Tracking</h1>
+            <p>Track WhatsApp contact online/offline status in real-time</p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="/" class="nav-btn">Dashboard</a>
+            <a href="/groups" class="nav-btn">Groups</a>
+            <a href="/webhooks" class="nav-btn">Webhooks</a>
+            <a href="/schedules" class="nav-btn">Schedules</a>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Tracked</div>
+                <div class="stat-value" id="totalContacts">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Online Now</div>
+                <div class="stat-value" id="onlineCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Offline</div>
+                <div class="stat-value" id="offlineCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Queue Length</div>
+                <div class="stat-value" id="queueLength">0</div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>Add Contacts to Track</h2>
+            <div class="control-row">
+                <select class="group-select" id="groupSelect">
+                    <option value="">Select a group to load contacts...</option>
+                </select>
+                <button class="btn" onclick="loadGroupContacts()">Load Contacts</button>
+                <button class="btn btn-secondary" onclick="refreshStats()">Refresh Stats</button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>Available Contacts</h2>
+            <input type="text" class="search-box" id="searchBox" placeholder="Search contacts by name or number...">
+
+            <div id="bulkActions" class="bulk-actions" style="display: none;">
+                <span class="selected-count"><span id="selectedCount">0</span> contacts selected</span>
+                <button class="btn" onclick="subscribeSelected()">Subscribe Selected</button>
+                <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+            </div>
+
+            <div id="contactsLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading contacts...</p>
+            </div>
+
+            <div id="contactsGrid" class="contacts-grid"></div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-state-icon">👥</div>
+                <h3>No Contacts Loaded</h3>
+                <p>Select a group above to load contacts</p>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2>Currently Tracking</h2>
+            <div id="trackingLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading tracked contacts...</p>
+            </div>
+            <div id="trackingGrid" class="contacts-grid"></div>
+            <div id="trackingEmpty" class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <h3>No Contacts Being Tracked</h3>
+                <p>Subscribe to contacts to start tracking their presence</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let groups = [];
+        let availableContacts = [];
+        let trackedContacts = [];
+        let selectedContacts = new Set();
+
+        // Load groups on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGroups();
+            loadTrackedContacts();
+            startAutoRefresh();
+
+            // Setup search
+            document.getElementById('searchBox').addEventListener('input', filterContacts);
+        });
+
+        async function loadGroups() {
+            try {
+                const response = await fetch('/api/groups');
+                groups = await response.json();
+
+                const select = document.getElementById('groupSelect');
+                select.innerHTML = '<option value="">Select a group to load contacts...</option>';
+
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.jid;
+                    option.textContent = `${group.name} (${group.participants ? group.participants.length : 0} members)`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                showNotification('Failed to load groups: ' + error.message, 'error');
+            }
+        }
+
+        async function loadGroupContacts() {
+            const groupJID = document.getElementById('groupSelect').value;
+            if (!groupJID) {
+                showNotification('Please select a group', 'error');
+                return;
+            }
+
+            document.getElementById('contactsLoading').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('contactsGrid').innerHTML = '';
+
+            try {
+                // Fetch participants for the selected group
+                const response = await fetch(`/api/groups/participants?jid=${encodeURIComponent(groupJID)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch group participants');
+                }
+
+                const data = await response.json();
+                const participants = data.participants || [];
+
+                if (participants.length === 0) {
+                    showNotification('No participants found in group', 'error');
+                    document.getElementById('contactsLoading').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                    return;
+                }
+
+                availableContacts = participants.map(p => ({
+                    jid: p.jid,
+                    name: p.name || p.jid.split('@')[0],
+                    isTracked: trackedContacts.some(t => t.jid === p.jid)
+                }));
+
+                document.getElementById('contactsLoading').style.display = 'none';
+                renderAvailableContacts();
+            } catch (error) {
+                document.getElementById('contactsLoading').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                showNotification('Error loading contacts: ' + error.message, 'error');
+            }
+        }
+
+        async function loadTrackedContacts() {
+            document.getElementById('trackingLoading').style.display = 'block';
+            document.getElementById('trackingEmpty').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/presence');
+                trackedContacts = await response.json() || [];
+
+                document.getElementById('trackingLoading').style.display = 'none';
+
+                if (trackedContacts.length === 0) {
+                    document.getElementById('trackingEmpty').style.display = 'block';
+                    document.getElementById('trackingGrid').innerHTML = '';
+                } else {
+                    document.getElementById('trackingEmpty').style.display = 'none';
+                    renderTrackedContacts();
+                }
+
+                // Update available contacts tracked status (without re-rendering to preserve selections)
+                if (availableContacts.length > 0) {
+                    availableContacts.forEach(contact => {
+                        contact.isTracked = trackedContacts.some(t => t.jid === contact.jid);
+                    });
+                    // Only re-render if no contacts are selected (to avoid clearing selections)
+                    if (selectedContacts.size === 0) {
+                        renderAvailableContacts();
+                    }
+                }
+            } catch (error) {
+                document.getElementById('trackingLoading').style.display = 'none';
+                showNotification('Failed to load tracked contacts: ' + error.message, 'error');
+            }
+
+            await refreshStats();
+        }
+
+        async function refreshTrackedContactsOnly() {
+            try {
+                const response = await fetch('/api/presence');
+                const newTrackedContacts = await response.json() || [];
+
+                // Only update if data actually changed to avoid unnecessary re-renders
+                if (JSON.stringify(trackedContacts) !== JSON.stringify(newTrackedContacts)) {
+                    trackedContacts = newTrackedContacts;
+
+                    if (trackedContacts.length === 0) {
+                        document.getElementById('trackingEmpty').style.display = 'block';
+                        document.getElementById('trackingGrid').innerHTML = '';
+                    } else {
+                        document.getElementById('trackingEmpty').style.display = 'none';
+                        renderTrackedContacts();
+                    }
+
+                    // Update available contacts tracked status (but don't re-render)
+                    if (availableContacts.length > 0) {
+                        availableContacts.forEach(contact => {
+                            contact.isTracked = trackedContacts.some(t => t.jid === contact.jid);
+                        });
+                    }
+                }
+
+                await refreshStats();
+            } catch (error) {
+                console.error('Failed to refresh tracked contacts:', error);
+            }
+        }
+
+        async function refreshStats() {
+            try {
+                const response = await fetch('/api/presence/stats');
+                const stats = await response.json();
+
+                document.getElementById('totalContacts').textContent = stats.total_contacts || 0;
+                document.getElementById('onlineCount').textContent = stats.online_count || 0;
+                document.getElementById('offlineCount').textContent = stats.offline_count || 0;
+                document.getElementById('queueLength').textContent = stats.subscription_queue_length || 0;
+            } catch (error) {
+                console.error('Failed to refresh stats:', error);
+            }
+        }
+
+        function renderAvailableContacts() {
+            const grid = document.getElementById('contactsGrid');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
+            const filtered = availableContacts.filter(contact =>
+                contact.name.toLowerCase().includes(searchTerm) ||
+                contact.jid.toLowerCase().includes(searchTerm)
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><p>No contacts match your search</p></div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(contact => `
+                <div class="contact-card ${selectedContacts.has(contact.jid) ? 'selected' : ''} ${contact.isTracked ? 'tracking' : ''}"
+                     onclick="toggleContactSelection('${contact.jid}', event)">
+                    ${!contact.isTracked ? `
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" ${selectedContacts.has(contact.jid) ? 'checked' : ''}
+                               onclick="event.stopPropagation()">
+                    </div>
+                    ` : ''}
+                    ${contact.isTracked ? '<div class="tracking-badge">Tracking</div>' : ''}
+                    <div class="contact-header">
+                        <div class="status-indicator"></div>
+                        <div class="contact-name">${contact.name}</div>
+                    </div>
+                    <div class="contact-jid">${contact.jid}</div>
+                    <div class="contact-status">
+                        <span class="status-text">${contact.isTracked ? 'Already tracked' : 'Not tracked'}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            updateBulkActions();
+        }
+
+        function renderTrackedContacts() {
+            const grid = document.getElementById('trackingGrid');
+
+            grid.innerHTML = trackedContacts.map(contact => {
+                const lastSeen = contact.last_seen ? new Date(contact.last_seen) : null;
+                const lastSeenText = lastSeen ? formatLastSeen(lastSeen) : 'Never';
+
+                return `
+                    <div class="contact-card tracking">
+                        <div class="tracking-badge">Tracking</div>
+                        <button class="remove-btn" onclick="removeTracking('${contact.jid}')" title="Stop tracking">×</button>
+                        <div class="contact-header">
+                            <div class="status-indicator ${contact.is_online ? 'online' : 'offline'}"></div>
+                            <div class="contact-name">${contact.name || contact.jid.split('@')[0]}</div>
+                        </div>
+                        <div class="contact-jid">${contact.jid}</div>
+                        <div class="contact-status">
+                            <span class="status-text">${contact.is_online ? 'Online' : 'Offline'}</span>
+                            ${!contact.is_online ? `<span class="last-seen">Last seen: ${lastSeenText}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function removeTracking(jid) {
+            if (!confirm('Stop tracking this contact?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/presence/${encodeURIComponent(jid)}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Stopped tracking contact', 'success');
+                    // Reload tracked contacts (this is OK to re-render available since user just removed something)
+                    await loadTrackedContacts();
+                } else {
+                    showNotification('Failed to stop tracking', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        function toggleContactSelection(jid, event) {
+            const contact = availableContacts.find(c => c.jid === jid);
+            if (contact && contact.isTracked) {
+                return; // Don't allow selecting already tracked contacts
+            }
+
+            if (selectedContacts.has(jid)) {
+                selectedContacts.delete(jid);
+            } else {
+                selectedContacts.add(jid);
+            }
+
+            renderAvailableContacts();
+        }
+
+        function clearSelection() {
+            selectedContacts.clear();
+            renderAvailableContacts();
+        }
+
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const count = selectedContacts.size;
+
+            if (count > 0) {
+                bulkActions.style.display = 'flex';
+                document.getElementById('selectedCount').textContent = count;
+            } else {
+                bulkActions.style.display = 'none';
+            }
+        }
+
+        async function subscribeSelected() {
+            if (selectedContacts.size === 0) {
+                showNotification('No contacts selected', 'error');
+                return;
+            }
+
+            const jids = Array.from(selectedContacts);
+
+            try {
+                const response = await fetch('/api/presence/subscribe/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        jids: jids,
+                        priority: 2 // Medium priority
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification(`${result.count} contacts queued for subscription`, 'success');
+                    selectedContacts.clear();
+
+                    // Re-render available contacts to clear selections
+                    renderAvailableContacts();
+
+                    // Reload tracked contacts after a delay
+                    setTimeout(() => {
+                        refreshTrackedContactsOnly();
+                    }, 2000);
+                } else {
+                    showNotification('Failed to subscribe contacts', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        function filterContacts() {
+            renderAvailableContacts();
+        }
+
+        function formatLastSeen(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function startAutoRefresh() {
+            // Refresh tracked contacts and stats every 10 seconds
+            // Use refreshTrackedContactsOnly to avoid disrupting user selections
+            setInterval(() => {
+                refreshTrackedContactsOnly();
+            }, 10000);
+        }
+    </script>
+</body>
+</html>

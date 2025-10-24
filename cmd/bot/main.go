@@ -131,10 +131,39 @@ func main() {
 	}
 	defer schedulerService.Stop()
 
+	// Initialize presence service
+	presenceService := services.NewPresenceService(logger)
+	if err := presenceService.Start(ctx); err != nil {
+		logger.Error("Failed to start presence service", "error", err)
+	}
+
+	// Register presence event handler with WhatsApp client
+	waClient.OnPresence(func(event *domain.PresenceEvent) {
+		presenceService.UpdatePresence(event)
+	})
+
+	// Start subscription manager
+	subscriptionMgr := presenceService.GetSubscriptionManager()
+	if err := subscriptionMgr.Start(ctx, func(jid string) error {
+		// Subscribe to WhatsApp presence
+		err := waClient.SubscribeToPresence(jid)
+		if err == nil {
+			// Initialize contact in presence service
+			presenceService.InitializeContact(jid)
+		}
+		return err
+	}); err != nil {
+		logger.Error("Failed to start subscription manager", "error", err)
+	}
+
 	// Initialize HTTP server
 	httpHandlers := http.NewHandlers(waClient, groupMgr, configStore, logger)
 	scheduleHandlers := http.NewScheduleHandlers(schedulerService)
-	httpServer := http.NewServer(cfg.App.Port, httpHandlers, scheduleHandlers, logger)
+	presenceHandlers := http.NewPresenceHandlers(presenceService, func(jid string, priority int) error {
+		subscriptionMgr.QueueSubscription(jid, priority)
+		return nil
+	})
+	httpServer := http.NewServer(cfg.App.Port, httpHandlers, scheduleHandlers, presenceHandlers, logger)
 
 	if err := httpServer.Start(ctx); err != nil {
 		logger.Error("Failed to start HTTP server", "error", err)

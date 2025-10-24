@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/vibin/whatsapp-llm-bot/internal/core/domain"
@@ -79,8 +80,27 @@ func (r *ScheduleRepository) initialize() error {
 	CREATE INDEX IF NOT EXISTS idx_executions_schedule ON schedule_executions(schedule_id, executed_at DESC);
 	`
 
-	_, err := r.db.Exec(schema)
-	return err
+	if _, err := r.db.Exec(schema); err != nil {
+		return err
+	}
+
+	// Migration: Add prompt column if it doesn't exist
+	promptMigrationSQL := `ALTER TABLE schedules ADD COLUMN prompt TEXT;`
+	_, err := r.db.Exec(promptMigrationSQL)
+	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+		// Ignore "column already exists" error
+		return fmt.Errorf("prompt migration failed: %w", err)
+	}
+
+	// Migration: Add use_prompt column if it doesn't exist
+	usePromptMigrationSQL := `ALTER TABLE schedules ADD COLUMN use_prompt BOOLEAN NOT NULL DEFAULT 0;`
+	_, err = r.db.Exec(usePromptMigrationSQL)
+	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+		// Ignore "column already exists" error
+		return fmt.Errorf("use_prompt migration failed: %w", err)
+	}
+
+	return nil
 }
 
 // Create creates a new schedule

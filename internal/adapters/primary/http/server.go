@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Server represents the HTTP server
@@ -15,14 +16,16 @@ type Server struct {
 	server           *http.Server
 	handlers         *Handlers
 	scheduleHandlers *ScheduleHandlers
+	presenceHandlers *PresenceHandlers
 	logger           *slog.Logger
 }
 
 // NewServer creates a new HTTP server
-func NewServer(port int, handlers *Handlers, scheduleHandlers *ScheduleHandlers, logger *slog.Logger) *Server {
+func NewServer(port int, handlers *Handlers, scheduleHandlers *ScheduleHandlers, presenceHandlers *PresenceHandlers, logger *slog.Logger) *Server {
 	return &Server{
 		handlers:         handlers,
 		scheduleHandlers: scheduleHandlers,
+		presenceHandlers: presenceHandlers,
 		logger:           logger,
 		server: &http.Server{
 			Addr:         fmt.Sprintf(":%d", port),
@@ -40,6 +43,7 @@ func (s *Server) Start(ctx context.Context) error {
 	// API routes
 	api := router.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/groups", s.handlers.GetGroups).Methods("GET")
+	api.HandleFunc("/groups/participants", s.handlers.GetGroupParticipants).Methods("GET")
 	api.HandleFunc("/config/allowed-groups", s.handlers.GetAllowedGroups).Methods("GET")
 	api.HandleFunc("/config/allowed-groups", s.handlers.UpdateAllowedGroups).Methods("POST")
 	api.HandleFunc("/webhooks", s.handlers.GetWebhooks).Methods("GET")
@@ -60,12 +64,26 @@ func (s *Server) Start(ctx context.Context) error {
 		api.HandleFunc("/server-time", s.scheduleHandlers.GetServerTime).Methods("GET")
 	}
 
+	// Presence tracking routes
+	if s.presenceHandlers != nil {
+		api.HandleFunc("/presence", s.presenceHandlers.GetAllPresences).Methods("GET")
+		api.HandleFunc("/presence/stats", s.presenceHandlers.GetPresenceStats).Methods("GET")
+		api.HandleFunc("/presence/{jid}", s.presenceHandlers.GetPresence).Methods("GET")
+		api.HandleFunc("/presence/subscribe", s.presenceHandlers.SubscribeToContact).Methods("POST")
+		api.HandleFunc("/presence/subscribe/bulk", s.presenceHandlers.BulkSubscribe).Methods("POST")
+		api.HandleFunc("/presence/{jid}", s.presenceHandlers.UnsubscribeFromContact).Methods("DELETE")
+	}
+
+	// Prometheus metrics endpoint
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
+
 	// Static files and admin UI
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	router.HandleFunc("/schedules", s.serveSchedulesUI).Methods("GET")
 	router.HandleFunc("/execution-logs", s.serveExecutionLogsUI).Methods("GET")
 	router.HandleFunc("/groups", s.serveGroupsUI).Methods("GET")
 	router.HandleFunc("/webhooks", s.serveWebhooksUI).Methods("GET")
+	router.HandleFunc("/presence", s.servePresenceUI).Methods("GET")
 	router.HandleFunc("/", s.serveAdminUI).Methods("GET")
 
 	// Add CORS middleware
@@ -116,6 +134,11 @@ func (s *Server) serveGroupsUI(w http.ResponseWriter, r *http.Request) {
 // serveWebhooksUI serves the webhooks management UI page
 func (s *Server) serveWebhooksUI(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "web/templates/webhooks_new.html")
+}
+
+// servePresenceUI serves the presence tracking UI page
+func (s *Server) servePresenceUI(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "web/templates/presence_new.html")
 }
 
 // corsMiddleware adds CORS headers
